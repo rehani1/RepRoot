@@ -2,6 +2,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import BottomBar from '../components/ui/BottomBar.jsx';
+import { NavigationContainer } from '@react-navigation/native';
+
 
 import HomeScreen    from './index.jsx';
 import AIScreen      from './AI.jsx';
@@ -11,6 +13,7 @@ const Tab = createBottomTabNavigator();
 
 export default function Layout() {
   return (
+    
     <Tab.Navigator
       // no NavigationContainer here—Expo Router has one at the root
       screenOptions={{ headerShown: false }}
