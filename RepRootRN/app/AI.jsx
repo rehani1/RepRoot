@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import KeyboardAvoid from './KeyboardAvoid';
@@ -7,9 +7,9 @@ const AIScreen = () => {
 
     const [message, setMessage] = useState("");
 
-    const sendMessage = () => {
+    const sendMessage = useCallback(() => {
         setMessage("");
-    }
+    }, [message]);
     return (
         <KeyboardAvoid>
             <View style={styles.container}>
