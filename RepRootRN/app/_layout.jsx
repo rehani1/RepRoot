@@ -10,6 +10,7 @@ import AIScreen from './AI.jsx';
 import ProfileScreen from './Profile.jsx';
 import LoginScreen from './Login.jsx';
 import RegisterScreen from './Register.jsx';
+import HistoryScreen from './HistoryScreen.jsx';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -36,6 +37,15 @@ function AuthStack() {
   );
 }
 
+function MainStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="HomeTabs" component={MainTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'Workout History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
+    </Stack.Navigator>
+  );
+}
+
 export default function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -55,5 +65,5 @@ export default function Layout() {
 
   if (loading) return null;
 
-  return isLoggedIn ? <MainTabs /> : <AuthStack />;
+  return isLoggedIn ? <MainStack /> : <AuthStack />;
 }

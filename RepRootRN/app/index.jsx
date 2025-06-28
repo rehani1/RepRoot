@@ -1,76 +1,154 @@
-
-import React, { useState } from 'react';    
-import { View, Text, StyleSheet } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function HomeScreen() {
+  const navigation = useNavigation();
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
 
-    const today = new Date().toISOString().split('T')[0];
-    const [currentMonth, setCurrentMonth] = useState(today);
-    const [selectedDate, setSelectedDate] = useState(null);
+  // Timer logic (simple for now)
+  React.useEffect(() => {
+    let interval;
+    if (timerActive) {
+      interval = setInterval(() => setTimer((t) => t + 1), 1000);
+    } else if (!timerActive && timer !== 0) {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [timerActive, timer]);
+
+  const handleQuickStart = () => {
+    setTimer(0);
+    setTimerActive(true);
+    setShowWorkoutModal(true);
+  };
+
+  const handleCloseWorkout = () => {
+    setTimerActive(false);
+    setShowWorkoutModal(false);
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   return (
     <View style={styles.container}>
-        <Text style={styles.heading}>RepRoot</Text>
-      <Calendar
-        current={currentMonth}
-        onMonthChange={({ dateString }) => setCurrentMonth(dateString)}
-        hideExtraDays
-        onDayPress={(day) => setSelectedDate(day.dateString)}
-        markedDates={
-          selectedDate
-            ? {
-                [selectedDate]: {
-                  selected: true,
-                  selectedColor: '#2d3034',
-                  selectedTextColor: '#fff',
-                },
-              }
-            : {}
-        }
-        theme={{
-          todayTextColor: '#2d3034',
-          arrowColor: '#2d3034',
-        }}
-      />
+      <Text style={styles.appName}>RepRoot</Text>
+      <TouchableOpacity style={styles.quickStartButton} onPress={handleQuickStart}>
+        <Text style={styles.quickStartText}>Quick Start</Text>
+      </TouchableOpacity>
 
-      <Text style={styles.selectedText}>
-        {selectedDate
-          ? `Selected date: ${selectedDate}`
-          : 'Tap a date to select it'}
-      </Text>
+      {/* Workout Modal */}
+      <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Workout Session</Text>
+          <Text style={styles.timer}>{formatTime(timer)}</Text>
+          {/* TODO: Add workout entry form here */}
+          <TouchableOpacity style={styles.closeButton} onPress={handleCloseWorkout}>
+            <Text style={styles.closeButtonText}>End Session</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      {/* History Button at the bottom */}
+      <View style={styles.bottomContainer}>
+        <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('HistoryScreen')}>
+          <Text style={styles.historyIcon}>🕓</Text>
+          <Text style={styles.historyLabel}>History</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-    
-    safe: {
-      flex: 1,
-      backgroundColor: '#f8f9fa',
-    },
-    
-    container: {
-      flex: 1,
-      padding: 0,
-      paddingTop: 40,
-    },
-    heading: {
-        fontSize: 32,     
-        fontWeight: 'bold',
-        marginBottom: 12,
-        color: '#343a40',
-        textAlign: 'center',
-      },
-    
-    
-    calendar: {
-      flex: 1,
-      width: '100%',
-    },
-    selectedText: {
-      padding: 16,
-      textAlign: 'center',
-      fontSize: 16,
-      color: '#343a40',
-    },
-  });
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 0,
+  },
+  appName: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#2d3034',
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
+    marginBottom: 24,
+    marginLeft: 24,
+    textAlign: 'left',
+    letterSpacing: 2,
+  },
+  quickStartButton: {
+    backgroundColor: '#2d3034',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginBottom: 16,
+    marginTop: 16, // extra space below header
+  },
+  quickStartText: { color: '#fff', fontWeight: 'bold', fontSize: 20, letterSpacing: 1 },
+  bottomContainer: {
+    position: 'absolute',
+    bottom: 32,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2d3034',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 32,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  historyIcon: {
+    fontSize: 22,
+    color: '#fff',
+    marginRight: 8,
+  },
+  historyLabel: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  timer: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    marginBottom: 32,
+    color: '#2d3034',
+  },
+  closeButton: {
+    backgroundColor: '#2d3034',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+});
