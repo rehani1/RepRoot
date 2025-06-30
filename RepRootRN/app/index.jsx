@@ -2,9 +2,11 @@ import "react-native-url-polyfill/auto";
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
@@ -63,6 +65,10 @@ export default function HomeScreen() {
           <Text style={styles.historyLabel}>History</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity style={styles.button} onPress={() => router.push('/MacroTracker')}>
+        <Text style={styles.buttonText}>Track Macros</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -152,4 +158,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
+  button: {
+    backgroundColor: '#2d3034',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginHorizontal: 24,
+    marginBottom: 16,
+    marginTop: 16, // extra space below header
+  },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 20, letterSpacing: 1 },
 });

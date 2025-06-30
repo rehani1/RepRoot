@@ -11,6 +11,7 @@ import ProfileScreen from './Profile.jsx';
 import LoginScreen from './Login.jsx';
 import RegisterScreen from './Register.jsx';
 import HistoryScreen from './HistoryScreen.jsx';
+import MacroTracker from './MacroTracker.jsx';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -42,6 +43,7 @@ function MainStack() {
     <Stack.Navigator>
       <Stack.Screen name="HomeTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'Workout History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
+      <Stack.Screen name="MacroTracker" component={MacroTracker} options={{ title: 'Macro Tracker', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
     </Stack.Navigator>
   );
 }
