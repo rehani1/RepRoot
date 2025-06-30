@@ -1,3 +1,4 @@
+import "react-native-url-polyfill/auto";
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';

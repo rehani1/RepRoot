@@ -1,21 +1,60 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import KeyboardAvoid from './KeyboardAvoid';
+import { chatRequest } from '../utils/gpt';
+import { addUserMessage, getConversation, initConversation } from '../utils/conversation';
+import { FlatList } from 'react-native-gesture-handler';
+import Bubble from './Bubble';
 
 const AIScreen = () => {
 
     const [message, setMessage] = useState("");
+    const [conversation, setConversation] = useState([]);
 
-    const sendMessage = useCallback(() => {
-        setMessage("");
-    }, [message]);
+    useEffect(() => {
+        initConversation();
+        setConversation([...getConversation()]);
+  }, []);
+
+  const sendMessage = useCallback(async () => {
+    const text = message.trim();
+    if (!text) return;
+
+
+    addUserMessage(text);
+    setMessage("");
+    setConversation([...getConversation()]);
+
+    
+    try {
+      await chatRequest(text);           
+    } catch (err) {
+      console.error("AI error:", err);
+    }
+
+    
+    setConversation([...getConversation()]);
+  }, [message]);
     return (
         <KeyboardAvoid>
             <View style={styles.container}>
                 
                 <View style={styles.messagesContainer}>
+                    <FlatList
+                    data = {conversation}
+                    renderItem={(itemData) => {
+                        const conversationItem = itemData.item;
+                        const { role, content } = conversationItem;
 
+                        if (role === 'system') return null;
+                        return <Bubble 
+                            text={content}
+                            type={role}
+                            
+                        />
+                    }}  
+                    />
                 </View>
 
             <View style={styles.textInput}>
