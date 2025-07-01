@@ -68,32 +68,34 @@ export default function MacroTracker() {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Macro Tracker</Text>
-      <View style={styles.inputRow}>
-        <TextInput style={styles.input} placeholder="Food" value={food} onChangeText={setFood} />
-        <TextInput style={styles.input} placeholder="Protein" value={protein} onChangeText={setProtein} keyboardType="numeric" />
-        <TextInput style={styles.input} placeholder="Carbs" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
-        <TextInput style={styles.input} placeholder="Fats" value={fats} onChangeText={setFats} keyboardType="numeric" />
-        <TextInput style={styles.input} placeholder="Calories" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+      <View style={styles.inputCard}>
+        <View style={styles.inputRow}>
+          <TextInput style={styles.input} placeholder="Food" placeholderTextColor="#bbb" value={food} onChangeText={setFood} />
+          <TextInput style={styles.input} placeholder="Protein" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Carbs" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Fats" placeholderTextColor="#bbb" value={fats} onChangeText={setFats} keyboardType="numeric" />
+          <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+        </View>
+        <TouchableOpacity style={styles.addButton} onPress={addEntry}>
+          <Text style={styles.addButtonText}>Add</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.addButton} onPress={addEntry}>
-        <Text style={styles.addButtonText}>Add</Text>
-      </TouchableOpacity>
-      <View style={styles.summary}>
-        <Text style={styles.summaryText}>Protein: {macros.protein}g</Text>
-        <Text style={styles.summaryText}>Carbs: {macros.carbs}g</Text>
-        <Text style={styles.summaryText}>Fats: {macros.fats}g</Text>
-        <Text style={styles.summaryText}>Calories: {macros.calories}</Text>
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryText}>Protein: <Text style={styles.summaryValue}>{macros.protein}g</Text></Text>
+        <Text style={styles.summaryText}>Carbs: <Text style={styles.summaryValue}>{macros.carbs}g</Text></Text>
+        <Text style={styles.summaryText}>Fats: <Text style={styles.summaryValue}>{macros.fats}g</Text></Text>
+        <Text style={styles.summaryText}>Calories: <Text style={styles.summaryValue}>{macros.calories}</Text></Text>
       </View>
       {loading ? (
-        <Text>Loading...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       ) : (
         <FlatList
           data={entries}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <View style={styles.entry}>
+            <View style={styles.entryCard}>
               <Text style={styles.foodName}>{item.food}</Text>
-              <Text style={styles.entryText}>P: {item.protein}g C: {item.carbs}g F: {item.fats}g Cal: {item.calories}</Text>
+              <Text style={styles.entryText}>P: {item.protein}g  C: {item.carbs}g  F: {item.fats}g  Cal: {item.calories}</Text>
             </View>
           )}
         />
@@ -103,15 +105,47 @@ export default function MacroTracker() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f7f8f9', padding: 20 },
-  header: { fontSize: 28, fontWeight: 'bold', marginBottom: 16 },
-  inputRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  input: { backgroundColor: '#fff', borderRadius: 8, padding: 8, marginRight: 8, marginBottom: 8, width: 90 },
-  addButton: { backgroundColor: '#2d3034', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
-  addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-  summary: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  summaryText: { fontSize: 16, fontWeight: 'bold' },
-  entry: { backgroundColor: '#fff', borderRadius: 8, padding: 12, marginBottom: 8 },
-  foodName: { fontWeight: 'bold', fontSize: 16 },
-  entryText: { fontSize: 14 },
+  container: { flex: 1, backgroundColor: '#111', padding: 20 },
+  header: { fontSize: 32, fontWeight: 'bold', marginBottom: 24, color: '#fff', letterSpacing: 1 },
+  inputCard: {
+    backgroundColor: '#232323',
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  inputRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
+  input: { backgroundColor: '#181818', color: '#fff', borderRadius: 18, padding: 14, marginRight: 10, marginBottom: 10, width: 100, fontSize: 16, borderWidth: 0 },
+  addButton: { backgroundColor: '#fff', padding: 16, borderRadius: 32, alignItems: 'center', marginBottom: 0, marginTop: 8 },
+  addButtonText: { color: '#111', fontWeight: 'bold', fontSize: 18 },
+  summaryCard: {
+    backgroundColor: '#232323',
+    borderRadius: 28,
+    padding: 18,
+    marginBottom: 24,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  summaryText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  summaryValue: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
+  entryCard: {
+    backgroundColor: '#232323',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  foodName: { fontWeight: 'bold', fontSize: 18, color: '#fff', marginBottom: 4 },
+  entryText: { fontSize: 15, color: '#eee' },
+  loadingText: { color: '#bbb', fontSize: 16, textAlign: 'center', marginTop: 20 },
 }); 

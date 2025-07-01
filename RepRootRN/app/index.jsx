@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -40,132 +41,138 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.appName}>RepRoot</Text>
-      <TouchableOpacity style={styles.quickStartButton} onPress={handleQuickStart}>
-        <Text style={styles.quickStartText}>Quick Start</Text>
-      </TouchableOpacity>
-
-      {/* Workout Modal */}
-      <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Workout Session</Text>
-          <Text style={styles.timer}>{formatTime(timer)}</Text>
-          {/* TODO: Add workout entry form here */}
-          <TouchableOpacity style={styles.closeButton} onPress={handleCloseWorkout}>
-            <Text style={styles.closeButtonText}>End Session</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <View style={styles.container}>
+        <Text style={styles.appName}>RepRoot</Text>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleQuickStart}>
+            <Text style={styles.actionButtonText}>Quick Start</Text>
           </TouchableOpacity>
         </View>
-      </Modal>
-
-      {/* History Button at the bottom */}
-      <View style={styles.bottomContainer}>
-        <TouchableOpacity style={styles.historyButton} onPress={() => navigation.navigate('HistoryScreen')}>
-          <Text style={styles.historyIcon}>🕓</Text>
-          <Text style={styles.historyLabel}>History</Text>
-        </TouchableOpacity>
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/MacroTracker')}>
+            <Text style={styles.actionButtonText}>Track Macros</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.bottomContainer}>
+          <TouchableOpacity style={styles.historyCard} onPress={() => navigation.navigate('HistoryScreen')}>
+            <Text style={styles.historyIcon}>🕓</Text>
+            <Text style={styles.historyLabel}>History</Text>
+          </TouchableOpacity>
+        </View>
+        {/* Workout Modal */}
+        <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Workout Session</Text>
+            <Text style={styles.timer}>{formatTime(timer)}</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={handleCloseWorkout}>
+              <Text style={styles.closeButtonText}>End Session</Text>
+            </TouchableOpacity>
+          </View>
+        </Modal>
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={() => router.push('/MacroTracker')}>
-        <Text style={styles.buttonText}>Track Macros</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#111',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#111',
     paddingHorizontal: 0,
+    paddingTop: 16,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: 'bold',
-    color: '#2d3034',
-    marginTop: Platform.OS === 'ios' ? 60 : 40,
-    marginBottom: 24,
+    color: '#fff',
+    marginBottom: 32,
     marginLeft: 24,
-    textAlign: 'left',
     letterSpacing: 2,
   },
-  quickStartButton: {
-    backgroundColor: '#2d3034',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    marginTop: 16, // extra space below header
+  card: {
+    backgroundColor: '#232323',
+    borderRadius: 28,
+    marginHorizontal: 20,
+    marginBottom: 24,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  quickStartText: { color: '#fff', fontWeight: 'bold', fontSize: 20, letterSpacing: 1 },
+  actionButton: {
+    paddingVertical: 28,
+    alignItems: 'center',
+    borderRadius: 28,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 24,
+    letterSpacing: 1,
+  },
   bottomContainer: {
     position: 'absolute',
-    bottom: 32,
+    bottom: 36,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
-  historyButton: {
+  historyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2d3034',
-    paddingVertical: 12,
-    paddingHorizontal: 28,
+    backgroundColor: '#232323',
+    paddingVertical: 18,
+    paddingHorizontal: 38,
     borderRadius: 32,
-    elevation: 3,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
   },
   historyIcon: {
-    fontSize: 22,
+    fontSize: 24,
     color: '#fff',
-    marginRight: 8,
+    marginRight: 10,
   },
   historyLabel: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 20,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#181818',
     padding: 24,
   },
   modalTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 18,
+    color: '#fff',
   },
   timer: {
-    fontSize: 48,
+    fontSize: 52,
     fontWeight: 'bold',
-    marginBottom: 32,
-    color: '#2d3034',
+    marginBottom: 36,
+    color: '#fff',
   },
   closeButton: {
-    backgroundColor: '#2d3034',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 24,
+    backgroundColor: '#232323',
+    padding: 18,
+    borderRadius: 32,
+    marginTop: 28,
   },
   closeButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 20,
   },
-  button: {
-    backgroundColor: '#2d3034',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginHorizontal: 24,
-    marginBottom: 16,
-    marginTop: 16, // extra space below header
-  },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 20, letterSpacing: 1 },
 });

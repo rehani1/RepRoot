@@ -51,14 +51,14 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  appName: { fontSize: 40, fontWeight: 'bold', color: '#2d3034', textAlign: 'center', marginBottom: 8, letterSpacing: 2 },
-  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 24, textAlign: 'center' },
-  label: { fontWeight: 'bold', marginBottom: 4, marginLeft: 2, color: '#222' },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 16 },
-  button: { backgroundColor: '#2d3034', padding: 16, borderRadius: 8, alignItems: 'center', marginBottom: 12 },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#111' },
+  appName: { fontSize: 40, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 8, letterSpacing: 2 },
+  title: { fontSize: 32, fontWeight: 'bold', marginBottom: 24, textAlign: 'center', color: '#fff' },
+  label: { fontWeight: 'bold', marginBottom: 4, marginLeft: 2, color: '#eee' },
+  input: { borderWidth: 0, backgroundColor: '#232323', color: '#fff', borderRadius: 18, padding: 14, marginBottom: 18, fontSize: 16 },
+  button: { backgroundColor: '#fff', padding: 16, borderRadius: 32, alignItems: 'center', marginBottom: 12 },
+  buttonText: { color: '#111', fontWeight: 'bold', fontSize: 16 },
   error: { color: 'red', marginBottom: 12, textAlign: 'center' },
   linkContainer: { alignItems: 'center', marginTop: 8 },
-  link: { color: '#2d3034', textDecorationLine: 'underline' },
+  link: { color: '#fff', textDecorationLine: 'underline' },
 }); 

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
@@ -7,7 +6,6 @@ export default function Bubble({ text, type }) {
 
   return (
     <View
-
       style={[styles.row, isUser ? styles.rowEnd : styles.rowStart]}
     >
       <View 
@@ -30,34 +28,33 @@ export default function Bubble({ text, type }) {
 }
 
 const styles = StyleSheet.create({
-
   row: {
     flexDirection: "row",
-    marginVertical: 4,
-    paddingHorizontal: 10
+    marginVertical: 8,
+    paddingHorizontal: 14
   },
   rowStart: { justifyContent: "flex-start" },
   rowEnd: { justifyContent: "flex-end" },
-
   bubble: {
     maxWidth: "80%",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 18
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderRadius: 28,
+    marginBottom: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 8,
+    elevation: 4,
   },
-
-
   userBubble: {
-    backgroundColor: "#7B1FA2",          
-    borderBottomRightRadius: 4           
+    backgroundColor: "#fff",
+    borderBottomRightRadius: 12,
   },
   aiBubble: {
-    backgroundColor: "#FFFFFF",        
-    borderBottomLeftRadius: 4
+    backgroundColor: "#232323",
+    borderBottomLeftRadius: 12,
   },
-
-
-  text: { fontSize: 16 },
-  userText: { color: "#FFFFFF" },
-  aiText: { color: "#333333" }
+  text: { fontSize: 17 },
+  userText: { color: "#111" },
+  aiText: { color: "#fff" }
 });
