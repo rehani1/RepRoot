@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import dayjs from 'dayjs';
+
+const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Misc'];
+const ACCENT = '#ccc'; // light gray accent
 
 export default function MacroTracker() {
+  const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [userId, setUserId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState([]); // All entries for the selected date
+  const [showModal, setShowModal] = useState(false);
+  const [modalMeal, setModalMeal] = useState('Breakfast');
   const [food, setFood] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fats, setFats] = useState('');
   const [calories, setCalories] = useState('');
-  const [entries, setEntries] = useState([]);
-  const [userId, setUserId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState(null);
 
   useEffect(() => {
     const fetchUserAndEntries = async () => {
@@ -21,23 +29,41 @@ export default function MacroTracker() {
         return;
       }
       setUserId(user.id);
-      fetchEntries(user.id);
+      fetchEntries(user.id, selectedDate);
     };
     fetchUserAndEntries();
-  }, []);
+  }, [selectedDate]);
 
-  const fetchEntries = async (uid) => {
+  const fetchEntries = async (uid, date) => {
     setLoading(true);
     const { data, error } = await supabase
       .from('macros')
       .select('*')
       .eq('user_id', uid)
-      .order('created_at', { ascending: false });
+      .eq('date', date)
+      .order('created_at', { ascending: true });
     if (!error) setEntries(data || []);
     setLoading(false);
   };
 
-  const addEntry = async () => {
+  const openAddFoodModal = (meal) => {
+    setModalMeal(meal);
+    setFood(''); setProtein(''); setCarbs(''); setFats(''); setCalories(''); setEditId(null);
+    setShowModal(true);
+  };
+
+  const openEditFoodModal = (entry) => {
+    setModalMeal(entry.meal);
+    setFood(entry.food);
+    setProtein(entry.protein.toString());
+    setCarbs(entry.carbs.toString());
+    setFats(entry.fats.toString());
+    setCalories(entry.calories.toString());
+    setEditId(entry.id);
+    setShowModal(true);
+  };
+
+  const handleAddOrEditFood = async () => {
     if (!food || !protein || !carbs || !fats || !calories) return;
     if (!userId) return;
     const entry = {
@@ -47,16 +73,45 @@ export default function MacroTracker() {
       carbs: parseFloat(carbs),
       fats: parseFloat(fats),
       calories: parseFloat(calories),
+      meal: modalMeal,
+      date: selectedDate,
     };
-    const { error } = await supabase.from('macros').insert([entry]);
+    let error;
+    if (editId) {
+      ({ error } = await supabase.from('macros').update(entry).eq('id', editId));
+    } else {
+      ({ error } = await supabase.from('macros').insert([entry]));
+    }
     if (error) {
-      Alert.alert('Error', 'Failed to add entry.');
+      Alert.alert('Error', 'Failed to save entry.');
       return;
     }
-    setFood(''); setProtein(''); setCarbs(''); setFats(''); setCalories('');
-    fetchEntries(userId);
+    setShowModal(false);
+    setEditId(null);
+    fetchEntries(userId, selectedDate);
   };
 
+  const handleDeleteFood = async (id) => {
+    const { error } = await supabase.from('macros').delete().eq('id', id);
+    if (error) {
+      Alert.alert('Error', 'Failed to delete entry.');
+      return;
+    }
+    fetchEntries(userId, selectedDate);
+  };
+
+  const changeDay = (direction) => {
+    const newDate = dayjs(selectedDate).add(direction, 'day').format('YYYY-MM-DD');
+    setSelectedDate(newDate);
+  };
+
+  // Group entries by meal
+  const mealEntries = MEALS.reduce((acc, meal) => {
+    acc[meal] = entries.filter(e => e.meal === meal);
+    return acc;
+  }, {});
+
+  // Calculate daily macros
   const macros = entries.reduce((acc, e) => {
     acc.protein += e.protein;
     acc.carbs += e.carbs;
@@ -65,87 +120,123 @@ export default function MacroTracker() {
     return acc;
   }, { protein: 0, carbs: 0, fats: 0, calories: 0 });
 
+  // Example daily goals (could be user-configurable)
+  const dailyGoals = { calories: 3011, protein: 115, fats: 84, carbs: 449 };
+
+  const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
+  const displayDate = isToday
+    ? `Today${', ' + dayjs(selectedDate).format('MMM D')}`
+    : dayjs(selectedDate).format('dddd, MMM D');
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Macro Tracker</Text>
-      <View style={styles.inputCard}>
-        <View style={styles.inputRow}>
-          <TextInput style={styles.input} placeholder="Food" placeholderTextColor="#bbb" value={food} onChangeText={setFood} />
-          <TextInput style={styles.input} placeholder="Protein" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
-          <TextInput style={styles.input} placeholder="Carbs" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
-          <TextInput style={styles.input} placeholder="Fats" placeholderTextColor="#bbb" value={fats} onChangeText={setFats} keyboardType="numeric" />
-          <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+    <View style={{ flex: 1, backgroundColor: '#111', padding: 0 }}>
+      {/* Header and Date Navigation */}
+      <View style={{ paddingTop: 24, paddingBottom: 8, backgroundColor: '#111', alignItems: 'center' }}>
+        <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 2 }}>My Diet Plan</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+          <TouchableOpacity onPress={() => changeDay(-1)} style={{ padding: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 22 }}>{'<'}</Text>
+          </TouchableOpacity>
+          <Text style={{ color: '#fff', fontSize: 16, marginHorizontal: 12 }}>{displayDate}</Text>
+          <TouchableOpacity onPress={() => changeDay(1)} style={{ padding: 6 }}>
+            <Text style={{ color: '#fff', fontSize: 22 }}>{'>'}</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.addButton} onPress={addEntry}>
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
       </View>
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryText}>Protein: <Text style={styles.summaryValue}>{macros.protein}g</Text></Text>
-        <Text style={styles.summaryText}>Carbs: <Text style={styles.summaryValue}>{macros.carbs}g</Text></Text>
-        <Text style={styles.summaryText}>Fats: <Text style={styles.summaryValue}>{macros.fats}g</Text></Text>
-        <Text style={styles.summaryText}>Calories: <Text style={styles.summaryValue}>{macros.calories}</Text></Text>
+      {/* Daily Summary */}
+      <View style={{ backgroundColor: '#232323', borderRadius: 20, marginHorizontal: 12, marginTop: 8, marginBottom: 12, padding: 14 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Daily Summary</Text>
+            <Text style={{ color: '#bbb', fontSize: 13 }}>Today, {dayjs(selectedDate).format('MMMM D')}</Text>
+          </View>
+          <View style={{ backgroundColor: '#111', borderRadius: 32, padding: 10, borderWidth: 2, borderColor: '#6fcf97', alignItems: 'center' }}>
+            <Text style={{ color: '#6fcf97', fontWeight: 'bold', fontSize: 18 }}>{dailyGoals.calories - macros.calories}</Text>
+            <Text style={{ color: '#bbb', fontSize: 11 }}>left</Text>
+          </View>
+        </View>
+        <View style={{ marginTop: 10 }}>
+          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Macros Progress</Text>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Calories  {macros.calories} / {dailyGoals.calories} kcal</Text>
+          <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
+            <View style={{ width: `${Math.min(100, (macros.calories/dailyGoals.calories)*100)}%`, height: 5, backgroundColor: '#6fcf97', borderRadius: 3 }} />
+          </View>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Protein  {macros.protein} / {dailyGoals.protein} g</Text>
+          <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
+            <View style={{ width: `${Math.min(100, (macros.protein/dailyGoals.protein)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+          </View>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Fat  {macros.fats} / {dailyGoals.fats} g</Text>
+          <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
+            <View style={{ width: `${Math.min(100, (macros.fats/dailyGoals.fats)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+          </View>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Carbs  {macros.carbs} / {dailyGoals.carbs} g</Text>
+          <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
+            <View style={{ width: `${Math.min(100, (macros.carbs/dailyGoals.carbs)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+          </View>
+        </View>
+        <View style={{ marginTop: 8, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 8 }}>
+          <Text style={{ color: ACCENT, fontWeight: 'bold' }}>Your goal: Build Muscle</Text>
+        </View>
       </View>
-      {loading ? (
-        <Text style={styles.loadingText}>Loading...</Text>
-      ) : (
-        <FlatList
-          data={entries}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.entryCard}>
-              <Text style={styles.foodName}>{item.food}</Text>
-              <Text style={styles.entryText}>P: {item.protein}g  C: {item.carbs}g  F: {item.fats}g  Cal: {item.calories}</Text>
+      {/* Meals */}
+      <FlatList
+        data={MEALS}
+        keyExtractor={item => item}
+        renderItem={({ item: meal }) => (
+          <View style={{ backgroundColor: '#232323', borderRadius: 16, marginHorizontal: 12, marginBottom: 12, padding: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18 }}>{meal}</Text>
+              <TouchableOpacity onPress={() => openAddFoodModal(meal)}>
+                <Text style={{ color: ACCENT, fontSize: 24, fontWeight: 'bold' }}>+</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        />
-      )}
+            {mealEntries[meal].length === 0 ? (
+              <TouchableOpacity onPress={() => openAddFoodModal(meal)} style={{ borderWidth: 1, borderColor: ACCENT, borderStyle: 'dashed', borderRadius: 10, marginTop: 8, padding: 12, alignItems: 'center' }}>
+                <Text style={{ color: ACCENT, fontWeight: 'bold', fontSize: 14 }}>+ Add Food</Text>
+              </TouchableOpacity>
+            ) : (
+              mealEntries[meal].map(entry => (
+                <View key={entry.id} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#181818', borderRadius: 10, marginTop: 8, padding: 10 }}>
+                  <View>
+                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{entry.food}</Text>
+                    <Text style={{ color: '#bbb', fontSize: 12 }}>P: {entry.protein}g  C: {entry.carbs}g  F: {entry.fats}g  Cal: {entry.calories}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <TouchableOpacity onPress={() => openEditFoodModal(entry)} style={{ marginRight: 10 }}>
+                      <Text style={{ color: '#6fcf97', fontSize: 15 }}>Edit</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteFood(entry.id)}>
+                      <Text style={{ color: '#ff4b2b', fontSize: 15 }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
+        ListFooterComponent={<View style={{ height: 24 }} />}
+      />
+      {/* Add/Edit Food Modal */}
+      <Modal visible={showModal} animationType="slide" transparent onRequestClose={() => setShowModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#232323', borderRadius: 20, padding: 18, width: '90%' }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16, marginBottom: 8 }}>{editId ? 'Edit Food' : `Add Food to ${modalMeal}`}</Text>
+            <TextInput style={{ backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 8 }} placeholder="Food" placeholderTextColor="#bbb" value={food} onChangeText={setFood} />
+            <TextInput style={{ backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 8 }} placeholder="Protein (g)" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
+            <TextInput style={{ backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 8 }} placeholder="Carbs (g)" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
+            <TextInput style={{ backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 8 }} placeholder="Fats (g)" placeholderTextColor="#bbb" value={fats} onChangeText={setFats} keyboardType="numeric" />
+            <TextInput style={{ backgroundColor: '#181818', color: '#fff', borderRadius: 10, padding: 10, marginBottom: 8 }} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 6 }}>
+              <TouchableOpacity onPress={() => setShowModal(false)} style={{ marginRight: 12 }}>
+                <Text style={{ color: '#bbb', fontSize: 14 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleAddOrEditFood}>
+                <Text style={{ color: ACCENT, fontWeight: 'bold', fontSize: 14 }}>{editId ? 'Save' : 'Add'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
-}
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111', padding: 20 },
-  header: { fontSize: 32, fontWeight: 'bold', marginBottom: 24, color: '#fff', letterSpacing: 1 },
-  inputCard: {
-    backgroundColor: '#232323',
-    borderRadius: 28,
-    padding: 18,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  inputRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  input: { backgroundColor: '#181818', color: '#fff', borderRadius: 18, padding: 14, marginRight: 10, marginBottom: 10, width: 100, fontSize: 16, borderWidth: 0 },
-  addButton: { backgroundColor: '#fff', padding: 16, borderRadius: 32, alignItems: 'center', marginBottom: 0, marginTop: 8 },
-  addButtonText: { color: '#111', fontWeight: 'bold', fontSize: 18 },
-  summaryCard: {
-    backgroundColor: '#232323',
-    borderRadius: 28,
-    padding: 18,
-    marginBottom: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  summaryText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  summaryValue: { color: '#fff', fontWeight: 'bold', fontSize: 18 },
-  entryCard: {
-    backgroundColor: '#232323',
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.10,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  foodName: { fontWeight: 'bold', fontSize: 18, color: '#fff', marginBottom: 4 },
-  entryText: { fontSize: 15, color: '#eee' },
-  loadingText: { color: '#bbb', fontSize: 16, textAlign: 'center', marginTop: 20 },
-}); 
+} 
