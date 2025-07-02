@@ -1,33 +1,25 @@
-import OpenAI from "openai";
-import { addAssistantMessage, getConversation } from "./conversation";
+// RepRootRN/utils/gpt.js   (✨ new version – no OpenAI SDK here)
+import { addAssistantMessage } from "./conversation";
 
-const openai = new OpenAI({
-  apiKey: "",
-  dangerouslyAllowBrowser: true,
-});
+const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";  // ← change to yours
 
-export async function chatRequest(userText) {  
-    try {
-      const res = await openai.responses.create({
-        model: "gpt-4.1-nano",
-        input: userText,
-        instructions:
-          "You are an assistant for the mobile app RepRoot which helps users track gym progress, workouts and nutrition.",
-        temperature: 1,
-        max_output_tokens: 2048
-      });
-  
-      addAssistantMessage(res.output_text.trim());
-    } catch (err) {                               
-      if (err?.response) {
-        console.error("Status:", err.response.status);
-        console.error("Data:",   err.response.data);
-      } else {
-        console.error("Error:", err.message ?? err);
-      }
-  
-      addAssistantMessage(
-        "I couldn’t reach the AI service. Please try again later."
-      );
+export async function chatRequest(userText) {
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userText })
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      throw new Error(error ?? `HTTP ${res.status}`);
     }
+
+    const { output } = await res.json();
+    addAssistantMessage(output);
+  } catch (err) {
+    console.error("AI error:", err);
+    addAssistantMessage("I couldn’t reach the AI service. Please try again later.");
   }
+}
