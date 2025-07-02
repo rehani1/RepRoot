@@ -46,7 +46,7 @@ function MainStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="HomeTabs" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'Workout History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
+      <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
       <Stack.Screen name="MacroTracker" component={MacroTracker} options={{ title: 'Macro Tracker', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
     </Stack.Navigator>
   );

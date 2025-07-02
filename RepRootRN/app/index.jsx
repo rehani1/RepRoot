@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import QuickStartWorkout from './QuickStartWorkout.jsx';
+import { supabase } from '../lib/supabase';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -62,13 +64,25 @@ export default function HomeScreen() {
         </View>
         {/* Workout Modal */}
         <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Workout Session</Text>
-            <Text style={styles.timer}>{formatTime(timer)}</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={handleCloseWorkout}>
-              <Text style={styles.closeButtonText}>End Session</Text>
-            </TouchableOpacity>
-          </View>
+          <QuickStartWorkout
+            timer={formatTime(timer)}
+            onClose={handleCloseWorkout}
+            onSave={async ({ workoutName, exercises }) => {
+              // Save workout to Supabase
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) return;
+              const date = new Date().toISOString().slice(0, 10);
+              await supabase.from('workouts').insert([
+                {
+                  user_id: user.id,
+                  date,
+                  name: workoutName,
+                  exercises,
+                }
+              ]);
+              handleCloseWorkout();
+            }}
+          />
         </Modal>
       </View>
     </SafeAreaView>
