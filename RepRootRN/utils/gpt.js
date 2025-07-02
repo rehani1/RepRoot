@@ -1,7 +1,7 @@
 // RepRootRN/utils/gpt.js   (✨ new version – no OpenAI SDK here)
 import { addAssistantMessage } from "./conversation";
 
-const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";  // ← change to yours
+const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";  
 
 export async function chatRequest(userText) {
   try {

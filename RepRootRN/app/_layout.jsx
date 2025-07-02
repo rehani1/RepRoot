@@ -1,4 +1,8 @@
 // app/_layout.jsx
+import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+
 import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -67,5 +71,9 @@ export default function Layout() {
 
   if (loading) return null;
 
-  return isLoggedIn ? <MainStack /> : <AuthStack />;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {isLoggedIn ? <MainStack /> : <AuthStack />}
+    </GestureHandlerRootView>
+  );
 }
