@@ -16,6 +16,7 @@ import LoginScreen from './Login.jsx';
 import RegisterScreen from './Register.jsx';
 import HistoryScreen from './HistoryScreen.jsx';
 import MacroTracker from './MacroTracker.jsx';
+import CompleteProfile from './CompleteProfile.jsx';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -38,6 +39,7 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="CompleteProfile" component={CompleteProfile} />
     </Stack.Navigator>
   );
 }

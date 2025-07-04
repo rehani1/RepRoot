@@ -1,11 +1,43 @@
 import "react-native-url-polyfill/auto";
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import QuickStartWorkout from './QuickStartWorkout.jsx';
 import { supabase } from '../lib/supabase';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+
+const FEATURES = [
+  {
+    key: 'quickstart',
+    label: 'Quick Start',
+    color: '#6fcf97',
+    icon: <Ionicons name="flash" size={32} color="#fff" />,
+    onPress: 'quickstart',
+  },
+  {
+    key: 'macros',
+    label: 'Track Macros',
+    color: '#56ccf2',
+    icon: <MaterialCommunityIcons name="food-apple" size={32} color="#fff" />,
+    onPress: 'macros',
+  },
+  {
+    key: 'history',
+    label: 'History',
+    color: '#f2c94c',
+    icon: <Ionicons name="time" size={32} color="#fff" />,
+    onPress: 'history',
+  },
+  {
+    key: 'progress',
+    label: 'Progress',
+    color: '#bb6bd9',
+    icon: <MaterialCommunityIcons name="trending-up" size={32} color="#fff" />,
+    onPress: 'progress',
+  },
+];
 
 export default function HomeScreen() {
   const navigation = useNavigation();
@@ -24,6 +56,21 @@ export default function HomeScreen() {
     }
     return () => clearInterval(interval);
   }, [timerActive, timer]);
+
+  const handleCardPress = (key) => {
+    if (key === 'quickstart') {
+      setTimer(0);
+      setTimerActive(true);
+      setShowWorkoutModal(true);
+    } else if (key === 'macros') {
+      router.push('/MacroTracker');
+    } else if (key === 'history') {
+      navigation.navigate('HistoryScreen');
+    } else if (key === 'progress') {
+      // Progress feature not implemented yet
+      // Do nothing for now
+    }
+  };
 
   const handleQuickStart = () => {
     setTimer(0);
@@ -44,47 +91,45 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.container}>
-        <Text style={styles.appName}>RepRoot</Text>
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.actionButton} onPress={handleQuickStart}>
-            <Text style={styles.actionButtonText}>Quick Start</Text>
+      <Text style={styles.appName}>RepRoot</Text>
+      <FlatList
+        data={FEATURES}
+        numColumns={2}
+        keyExtractor={item => item.key}
+        contentContainerStyle={styles.grid}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.card, { backgroundColor: item.color }]}
+            onPress={() => handleCardPress(item.key)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.iconWrap}>{item.icon}</View>
+            <Text style={styles.cardLabel}>{item.label}</Text>
           </TouchableOpacity>
-        </View>
-        <View style={styles.card}>
-          <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/MacroTracker')}>
-            <Text style={styles.actionButtonText}>Track Macros</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.bottomContainer}>
-          <TouchableOpacity style={styles.historyCard} onPress={() => navigation.navigate('HistoryScreen')}>
-            <Text style={styles.historyIcon}>🕓</Text>
-            <Text style={styles.historyLabel}>History</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Workout Modal */}
-        <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
-          <QuickStartWorkout
-            timer={formatTime(timer)}
-            onClose={handleCloseWorkout}
-            onSave={async ({ workoutName, exercises }) => {
-              // Save workout to Supabase
-              const { data: { user } } = await supabase.auth.getUser();
-              if (!user) return;
-              const date = new Date().toISOString().slice(0, 10);
-              await supabase.from('workouts').insert([
-                {
-                  user_id: user.id,
-                  date,
-                  name: workoutName,
-                  exercises,
-                }
-              ]);
-              handleCloseWorkout();
-            }}
-          />
-        </Modal>
-      </View>
+        )}
+      />
+      {/* Workout Modal */}
+      <Modal visible={showWorkoutModal} animationType="slide" onRequestClose={handleCloseWorkout}>
+        <QuickStartWorkout
+          timer={formatTime(timer)}
+          onClose={handleCloseWorkout}
+          onSave={async ({ workoutName, exercises }) => {
+            // Save workout to Supabase
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const date = new Date().toISOString().slice(0, 10);
+            await supabase.from('workouts').insert([
+              {
+                user_id: user.id,
+                date,
+                name: workoutName,
+                exercises,
+              }
+            ]);
+            handleCloseWorkout();
+          }}
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -93,71 +138,44 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#111',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#111',
-    paddingHorizontal: 0,
     paddingTop: 16,
   },
   appName: {
     fontSize: 38,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 32,
+    marginBottom: 24,
     marginLeft: 24,
     letterSpacing: 2,
   },
+  grid: {
+    paddingHorizontal: 8,
+    paddingBottom: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
   card: {
-    backgroundColor: '#232323',
+    flexBasis: '45%',
+    aspectRatio: 1,
     borderRadius: 28,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    padding: 0,
+    margin: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.18,
     shadowRadius: 16,
     elevation: 8,
   },
-  actionButton: {
-    paddingVertical: 28,
-    alignItems: 'center',
-    borderRadius: 28,
+  iconWrap: {
+    marginBottom: 12,
   },
-  actionButtonText: {
+  cardLabel: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 24,
+    fontSize: 18,
+    textAlign: 'center',
     letterSpacing: 1,
-  },
-  bottomContainer: {
-    position: 'absolute',
-    bottom: 36,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  historyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#232323',
-    paddingVertical: 18,
-    paddingHorizontal: 38,
-    borderRadius: 32,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-  },
-  historyIcon: {
-    fontSize: 24,
-    color: '#fff',
-    marginRight: 10,
-  },
-  historyLabel: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 20,
   },
   modalContainer: {
     flex: 1,
