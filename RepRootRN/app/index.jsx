@@ -67,8 +67,7 @@ export default function HomeScreen() {
     } else if (key === 'history') {
       navigation.navigate('HistoryScreen');
     } else if (key === 'progress') {
-      // Progress feature not implemented yet
-      // Do nothing for now
+      navigation.navigate("ProgressScreen");
     }
   };
 

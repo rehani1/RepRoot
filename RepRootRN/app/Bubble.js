@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
   },
   aiBubble: {
-    backgroundColor: "#232323",
+    backgroundColor: "purple",
     borderBottomLeftRadius: 12,
   },
   text: { fontSize: 17 },

@@ -17,6 +17,7 @@ import RegisterScreen from './Register.jsx';
 import HistoryScreen from './HistoryScreen.jsx';
 import MacroTracker from './MacroTracker.jsx';
 import CompleteProfile from './CompleteProfile.jsx';
+import ProgressScreen from './Progress.jsx';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -28,6 +29,7 @@ function MainTabs() {
       tabBar={(props) => <BottomBar {...props} />}
     >
       <Tab.Screen name="index" component={HomeScreen} options={{ title: 'Home' }} />
+      
       <Tab.Screen name="AIScreen" component={AIScreen} options={{ title: 'AI' }} />
       <Tab.Screen name="ProfileScreen" component={ProfileScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
@@ -49,6 +51,7 @@ function MainStack() {
     <Stack.Navigator>
       <Stack.Screen name="HomeTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
+      <Stack.Screen name="ProgressScreen" component={ProgressScreen} options={{ title: 'Progress', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
       <Stack.Screen name="MacroTracker" component={MacroTracker} options={{ title: 'Macro Tracker', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
     </Stack.Navigator>
   );
