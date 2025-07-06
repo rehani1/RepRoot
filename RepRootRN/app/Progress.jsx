@@ -115,19 +115,31 @@ export default function ProgressScreen() {
   
       const { data: { user }, error: userErr } = await supabase.auth.getUser();
       if (userErr || !user) throw new Error('No user');
-  
-      const fileExt = pickedImage.uri.split('.').pop();
-      const storagePath = `${user.id}/${Date.now()}.${fileExt}`;
+    
+       
+    const mime = pickedImage.type || 'image/jpeg';
 
+    
+    const ext =
+        pickedImage.uri.match(/\.([a-zA-Z0-9]+)$/)?.[1] ??
+        mime.split('/').pop() ??
+        'jpg';
 
-      const response = await fetch(pickedImage.uri);
-      const blob      = await response.blob();
+        const storagePath = `${user.id}/${Date.now()}.${ext.toLowerCase()}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from('progress-images')
-        .upload(storagePath, blob, {
-            contentType: pickedImage.type || 'image/jpeg',
-        });
+        
+        const file = {
+        uri : pickedImage.uri,   
+        type: mime,
+        name: `${Date.now()}.${ext}`,
+        };
+     
+        const { error: uploadErr } = await supabase.storage
+          .from('progress-images')
+          .upload(storagePath, file, {       
+              contentType: mime,
+              upsert: false,
+          });
       if (uploadErr) throw uploadErr;
   
       const { error: insertErr } = await supabase
