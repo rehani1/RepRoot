@@ -11,7 +11,7 @@ import {
   TextInput,
   Alert,
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import dayjs from "dayjs";
@@ -20,12 +20,11 @@ import * as ImagePicker from "expo-image-picker";
 import "react-native-get-random-values";
 import { v4 as uuidv4 } from "uuid";
 
-import KeyboardAvoidingViewContainer from './KeyboardAvoid';
+import KeyboardAvoidingViewContainer from "./KeyboardAvoid";
 
 export default function ProgressScreen() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-
 
   const [showModal, setShowModal] = useState(false);
   const [pickedImage, setPickedImage] = useState(null);
@@ -35,14 +34,13 @@ export default function ProgressScreen() {
 
   const navigation = useNavigation();
 
- 
   const fetchEntries = async () => {
     try {
       setLoading(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      
+
       if (!user) {
         setEntries([]);
         return;
@@ -56,15 +54,14 @@ export default function ProgressScreen() {
 
       if (error) throw error;
 
- 
       const withUrls = await Promise.all(
         (data || []).map(async (entry) => {
           if (!entry.image_path) return entry;
-            const { data: pub, error: urlErr } = await supabase.storage
-            .from('progress-images')
+          const { data: pub, error: urlErr } = await supabase.storage
+            .from("progress-images")
             .getPublicUrl(entry.image_path);
-            if (urlErr) throw urlErr;
-            return { ...entry, image_url: pub.publicUrl };
+          if (urlErr) throw urlErr;
+          return { ...entry, image_url: pub.publicUrl };
         })
       );
       setEntries(withUrls);
@@ -81,10 +78,10 @@ export default function ProgressScreen() {
     }, [])
   );
 
-
   const openImagePicker = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Alert.alert("Permission required", "Please grant camera‑roll access.");
         return;
@@ -109,68 +106,98 @@ export default function ProgressScreen() {
     setUploading(false);
   };
 
+  async function deleteEntry(entryId, imagePath) {
+    Alert.alert(
+      "Delete entry?",
+      "This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (imagePath) {
+                await supabase.storage
+                  .from("progress-images")
+                  .remove([imagePath]);
+              }
+
+              const { error } = await supabase
+                .from("progress")
+                .delete()
+                .eq("id", entryId);
+
+              if (error) throw error;
+
+              setEntries((prev) => prev.filter((e) => e.id !== entryId));
+            } catch (err) {
+              console.error("Delete failed", err);
+              Alert.alert("Error", err.message || "Could not delete");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  }
+
   async function saveEntry() {
     try {
       setUploading(true);
-  
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !user) throw new Error('No user');
-    
-       
-    const mime = pickedImage.type || 'image/jpeg';
 
-    
-    const ext =
+      const {
+        data: { user },
+        error: userErr,
+      } = await supabase.auth.getUser();
+      if (userErr || !user) throw new Error("No user");
+
+      const mime = pickedImage.type || "image/jpeg";
+
+      const ext =
         pickedImage.uri.match(/\.([a-zA-Z0-9]+)$/)?.[1] ??
-        mime.split('/').pop() ??
-        'jpg';
+        mime.split("/").pop() ??
+        "jpg";
 
-        const storagePath = `${user.id}/${Date.now()}.${ext.toLowerCase()}`;
+      const storagePath = `${user.id}/${Date.now()}.${ext.toLowerCase()}`;
 
-        
-        const file = {
-        uri : pickedImage.uri,   
+      const file = {
+        uri: pickedImage.uri,
         type: mime,
         name: `${Date.now()}.${ext}`,
-        };
-     
-        const { error: uploadErr } = await supabase.storage
-          .from('progress-images')
-          .upload(storagePath, file, {       
-              contentType: mime,
-              upsert: false,
-          });
-      if (uploadErr) throw uploadErr;
-  
-      const { error: insertErr } = await supabase
-        .from('progress')
-        .insert({
-          user_id: user.id,             
-          weight: weight ? Number(weight) : null,
-          image_path: storagePath,
-          note: note?.trim() || null,
+      };
+
+      const { error: uploadErr } = await supabase.storage
+        .from("progress-images")
+        .upload(storagePath, file, {
+          contentType: mime,
+          upsert: false,
         });
-  
+      if (uploadErr) throw uploadErr;
+
+      const { error: insertErr } = await supabase.from("progress").insert({
+        user_id: user.id,
+        weight: weight ? Number(weight) : null,
+        image_path: storagePath,
+        note: note?.trim() || null,
+      });
+
       if (insertErr) throw insertErr;
-  
-     
-      await fetchEntries();      
+
+      await fetchEntries();
       setShowModal(false);
       resetModalState();
     } catch (err) {
-      console.error('Save entry error', err);
-      Alert.alert('Error', err.message || 'Could not save');
+      console.error("Save entry error", err);
+      Alert.alert("Error", err.message || "Could not save");
     } finally {
       setUploading(false);
     }
   }
-  
 
- 
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Progress</Text>
-
 
       {loading ? (
         <ActivityIndicator
@@ -201,6 +228,12 @@ export default function ProgressScreen() {
                   {entry.created_at
                     ? dayjs(entry.created_at).format("MMM D, YYYY")
                     : ""}
+                  <TouchableOpacity
+                    style={styles.deleteBadge}
+                    onPress={() => deleteEntry(entry.id, entry.image_path)}
+                  >
+                    <Text style={styles.deleteText}>×</Text>
+                  </TouchableOpacity>
                 </Text>
               </View>
             </View>
@@ -218,94 +251,99 @@ export default function ProgressScreen() {
       </TouchableOpacity>
 
       {/* ─────────── New-entry Modal ─────────── */}
-<Modal
-  visible={showModal}
-  transparent
-  animationType="slide"
-  onRequestClose={() => {
-    if (!uploading) {
-      setShowModal(false);
-      resetModalState();
-    }
-  }}
->
-  {/* lifts the card when the keyboard shows (iOS) */}
-  <KeyboardAvoidingViewContainer>
-    {/* tap anywhere outside the inputs to dismiss the keyboard */}
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      {/* lets the whole card scroll if the keyboard covers the bottom */}
-      <ScrollView
-        contentContainerStyle={styles.modalContainer}
-        keyboardShouldPersistTaps="handled"
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          if (!uploading) {
+            setShowModal(false);
+            resetModalState();
+          }
+        }}
       >
-        <View style={styles.modalContent}>
-          <Text style={styles.modalHeading}>Add New Progress</Text>
+        {/* lifts the card when the keyboard shows (iOS) */}
+        <KeyboardAvoidingViewContainer>
+          {/* tap anywhere outside the inputs to dismiss the keyboard */}
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            {/* lets the whole card scroll if the keyboard covers the bottom */}
+            <ScrollView
+              contentContainerStyle={styles.modalContainer}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.modalContent}>
+                <Text style={styles.modalHeading}>Add New Progress</Text>
 
-          {/* ── Photo picker ── */}
-          <TouchableOpacity
-            style={styles.photoPicker}
-            onPress={openImagePicker}
-            disabled={uploading}
-          >
-            {pickedImage ? (
-              <Image source={{ uri: pickedImage.uri }} style={styles.previewImg} />
-            ) : (
-              <Text style={styles.photoPickerText}>Tap to choose photo</Text>
-            )}
-          </TouchableOpacity>
+                {/* ── Photo picker ── */}
+                <TouchableOpacity
+                  style={styles.photoPicker}
+                  onPress={openImagePicker}
+                  disabled={uploading}
+                >
+                  {pickedImage ? (
+                    <Image
+                      source={{ uri: pickedImage.uri }}
+                      style={styles.previewImg}
+                    />
+                  ) : (
+                    <Text style={styles.photoPickerText}>
+                      Tap to choose photo
+                    </Text>
+                  )}
+                </TouchableOpacity>
 
-          {/* ── Weight input ── */}
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            placeholder="Weight (lbs)"
-            placeholderTextColor="#666"
-            value={weight}
-            onChangeText={setWeight}
-            editable={!uploading}
-            returnKeyType="done"
-            onSubmitEditing={Keyboard.dismiss}
-          />
+                {/* ── Weight input ── */}
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  placeholder="Weight (lbs)"
+                  placeholderTextColor="#666"
+                  value={weight}
+                  onChangeText={setWeight}
+                  editable={!uploading}
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss}
+                />
 
-          {/* ── Note input ── */}
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            placeholder="Note (optional)"
-            placeholderTextColor="#666"
-            value={note}
-            onChangeText={setNote}
-            multiline
-            editable={!uploading}
-          />
+                {/* ── Note input ── */}
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  placeholder="Note (optional)"
+                  placeholderTextColor="#666"
+                  value={note}
+                  onChangeText={setNote}
+                  multiline
+                  editable={!uploading}
+                />
 
-          {uploading ? (
-            <ActivityIndicator
-              style={{ marginVertical: 12 }}
-              size="large"
-              color="#6fcf97"
-            />
-          ) : (
-            <TouchableOpacity style={styles.saveBtn} onPress={saveEntry}>
-              <Text style={styles.saveBtnText}>Save</Text>
-            </TouchableOpacity>
-          )}
+                {uploading ? (
+                  <ActivityIndicator
+                    style={{ marginVertical: 12 }}
+                    size="large"
+                    color="#6fcf97"
+                  />
+                ) : (
+                  <TouchableOpacity style={styles.saveBtn} onPress={saveEntry}>
+                    <Text style={styles.saveBtnText}>Save</Text>
+                  </TouchableOpacity>
+                )}
 
-          <TouchableOpacity
-            style={styles.closeBtn}
-            onPress={() => {
-              if (!uploading) {
-                setShowModal(false);
-                resetModalState();
-              }
-            }}
-          >
-            <Text style={styles.closeBtnText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </TouchableWithoutFeedback>
-  </KeyboardAvoidingViewContainer>
-</Modal>
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={() => {
+                    if (!uploading) {
+                      setShowModal(false);
+                      resetModalState();
+                    }
+                  }}
+                >
+                  <Text style={styles.closeBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingViewContainer>
+      </Modal>
     </View>
   );
 }
@@ -452,4 +490,22 @@ const styles = StyleSheet.create({
     color: "#bbb",
     fontSize: 15,
   },
+  deleteBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e74c3c',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 18,
+  },
+  
 });
