@@ -17,7 +17,37 @@ const AIScreen = () => {
         initConversation();
         setConversation([...getConversation()]);
   }, []);
-
+  
+async function buildUserContext() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return '';
+  
+    // get the last 30 days of workouts
+    const { data: workouts } = await supabase
+      .from('workouts')
+      .select('date,name,exercises')
+      .eq('user_id', user.id)
+      .gte('date', dayjs().subtract(30, 'days').format('YYYY-MM-DD'));
+  
+    // get the last 7 days of macros
+    const { data: macros } = await supabase
+      .from('macros')
+      .select('date,meal,calories,protein,carbs,fats')
+      .eq('user_id', user.id)
+      .gte('date', dayjs().subtract(7, 'days').format('YYYY-MM-DD'));
+  
+   
+    const wTxt = (workouts ?? []).map(
+      w => `${w.date}: ${w.name} (${w.exercises?.length ?? 0} exercises)`
+    ).join('\n');
+  
+    const mTxt = (macros ?? []).map(
+      m => `${m.date} ${m.meal}: ${m.calories} kcal (P${m.protein} C${m.carbs} F${m.fats})`
+    ).join('\n');
+  
+    return `### Recent workouts (30 d)\n${wTxt}\n\n### Recent macros (7 d)\n${mTxt}`;
+  }
+  
   const sendMessage = useCallback(async () => {
     const text = message.trim();
     if (!text) return;
@@ -29,7 +59,8 @@ const AIScreen = () => {
 
     
     try {
-      await chatRequest(text);           
+        const context = await buildUserContext();   
+        await chatRequest(text, context);         
     } catch (err) {
       console.error("AI error:", err);
     }

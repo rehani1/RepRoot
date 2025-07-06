@@ -3,12 +3,12 @@ import { addAssistantMessage } from "./conversation";
 
 const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";  
 
-export async function chatRequest(userText) {
+export async function chatRequest(userText, context = "") {
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userText })
+      body: JSON.stringify({ userText, context })
     });
 
     if (!res.ok) {
