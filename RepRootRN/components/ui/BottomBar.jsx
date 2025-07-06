@@ -1,4 +1,4 @@
-// components/ui/BottomBar.jsx
+
 
 import React from 'react';
 import { View, Pressable, Text, StyleSheet } from 'react-native';
