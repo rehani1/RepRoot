@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, KeyboardAvoidingView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -7,6 +6,7 @@ import { chatRequest } from '../utils/gpt';
 import { addUserMessage, getConversation, initConversation } from '../utils/conversation';
 import { FlatList } from 'react-native-gesture-handler';
 import Bubble from './Bubble';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const AIScreen = () => {
 
@@ -38,40 +38,42 @@ const AIScreen = () => {
     setConversation([...getConversation()]);
   }, [message]);
     return (
-        <KeyboardAvoid>
-            <View style={styles.container}>
-                <View style={styles.card}>
-                    <View style={styles.messagesContainer}>
-                        <FlatList
-                        data = {conversation}
-                        renderItem={(itemData) => {
-                            const conversationItem = itemData.item;
-                            const { role, content } = conversationItem;
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#111' }} edges={["top"]}>
+            <KeyboardAvoid style={{ flex: 1 }}>
+                <View style={styles.container}>
+                    <View style={styles.card}>
+                        <View style={styles.messagesContainer}>
+                            <FlatList
+                            data = {conversation}
+                            renderItem={(itemData) => {
+                                const conversationItem = itemData.item;
+                                const { role, content } = conversationItem;
 
-                            if (role === 'system') return null;
-                            return <Bubble 
-                                text={content}
-                                type={role}
+                                if (role === 'system') return null;
+                                return <Bubble 
+                                    text={content}
+                                    type={role}
+                                />
+                            }}  
                             />
-                        }}  
-                        />
-                    </View>
-                    <View style={styles.textInput}>
-                        <TextInput
-                        style={styles.text}
-                        placeholder="Type a message..."
-                        placeholderTextColor="#bbb"
-                        onChangeText={(text) => setMessage(text)}
-                        value={message}
-                        />
-                        <TouchableOpacity style={styles.sendButton}
-                        onPress={sendMessage}>
-                            <Feather name="send" size={20} color="#232323" />
-                        </TouchableOpacity>
+                        </View>
+                        <View style={styles.textInput}>
+                            <TextInput
+                            style={styles.text}
+                            placeholder="Type a message..."
+                            placeholderTextColor="#bbb"
+                            onChangeText={(text) => setMessage(text)}
+                            value={message}
+                            />
+                            <TouchableOpacity style={styles.sendButton}
+                            onPress={sendMessage}>
+                                <Feather name="send" size={20} color="#232323" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            </View>
-        </KeyboardAvoid>
+            </KeyboardAvoid>
+        </SafeAreaView>
     );
 };
 

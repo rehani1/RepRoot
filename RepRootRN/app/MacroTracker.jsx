@@ -19,9 +19,10 @@ export default function MacroTracker() {
   const [fats, setFats] = useState('');
   const [calories, setCalories] = useState('');
   const [editId, setEditId] = useState(null);
+  const [profileGoals, setProfileGoals] = useState(null);
 
   useEffect(() => {
-    const fetchUserAndEntries = async () => {
+    const fetchUserAndEntriesAndGoals = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
         Alert.alert('Error', 'Could not get user. Please log in again.');
@@ -30,8 +31,20 @@ export default function MacroTracker() {
       }
       setUserId(user.id);
       fetchEntries(user.id, selectedDate);
+      // Fetch profile goals
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (prof) {
+        setProfileGoals({
+          calories: prof.calories,
+          protein: prof.protein,
+          fat: prof.fat,
+          carbs: prof.carbs,
+        });
+      } else {
+        setProfileGoals(null);
+      }
     };
-    fetchUserAndEntries();
+    fetchUserAndEntriesAndGoals();
   }, [selectedDate]);
 
   const fetchEntries = async (uid, date) => {
@@ -120,8 +133,14 @@ export default function MacroTracker() {
     return acc;
   }, { protein: 0, carbs: 0, fats: 0, calories: 0 });
 
-  // Example daily goals (could be user-configurable)
-  const dailyGoals = { calories: 3011, protein: 115, fats: 84, carbs: 449 };
+  // Use profileGoals if available, otherwise fallback to defaults for each macro
+  const defaultGoals = { calories: 3011, protein: 115, fat: 84, carbs: 449 };
+  const dailyGoals = {
+    calories: profileGoals && !isNaN(Number(profileGoals.calories)) && profileGoals.calories !== null && profileGoals.calories !== '' ? Number(profileGoals.calories) : null,
+    protein: profileGoals && !isNaN(Number(profileGoals.protein)) && profileGoals.protein !== null && profileGoals.protein !== '' ? Number(profileGoals.protein) : null,
+    fat: profileGoals && !isNaN(Number(profileGoals.fat)) && profileGoals.fat !== null && profileGoals.fat !== '' ? Number(profileGoals.fat) : null,
+    carbs: profileGoals && !isNaN(Number(profileGoals.carbs)) && profileGoals.carbs !== null && profileGoals.carbs !== '' ? Number(profileGoals.carbs) : null,
+  };
 
   const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
   const displayDate = isToday
@@ -157,21 +176,21 @@ export default function MacroTracker() {
         </View>
         <View style={{ marginTop: 10 }}>
           <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Macros Progress</Text>
-          <Text style={{ color: '#bbb', fontSize: 13 }}>Calories  {macros.calories} / {dailyGoals.calories} kcal</Text>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Calories  {macros.calories} / {dailyGoals.calories !== null ? dailyGoals.calories + ' cal' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: `${Math.min(100, (macros.calories/dailyGoals.calories)*100)}%`, height: 5, backgroundColor: '#6fcf97', borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.calories ? `${Math.min(100, (macros.calories/dailyGoals.calories)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.calories ? '#6fcf97' : '#555', borderRadius: 3 }} />
           </View>
-          <Text style={{ color: '#bbb', fontSize: 13 }}>Protein  {macros.protein} / {dailyGoals.protein} g</Text>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Protein  {macros.protein} / {dailyGoals.protein !== null ? dailyGoals.protein + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: `${Math.min(100, (macros.protein/dailyGoals.protein)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.protein ? `${Math.min(100, (macros.protein/dailyGoals.protein)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.protein ? ACCENT : '#555', borderRadius: 3 }} />
           </View>
-          <Text style={{ color: '#bbb', fontSize: 13 }}>Fat  {macros.fats} / {dailyGoals.fats} g</Text>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Fat  {macros.fats} / {dailyGoals.fat !== null ? dailyGoals.fat + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: `${Math.min(100, (macros.fats/dailyGoals.fats)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.fat ? `${Math.min(100, (macros.fats/dailyGoals.fats)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.fat ? ACCENT : '#555', borderRadius: 3 }} />
           </View>
-          <Text style={{ color: '#bbb', fontSize: 13 }}>Carbs  {macros.carbs} / {dailyGoals.carbs} g</Text>
+          <Text style={{ color: '#bbb', fontSize: 13 }}>Carbs  {macros.carbs} / {dailyGoals.carbs !== null ? dailyGoals.carbs + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: `${Math.min(100, (macros.carbs/dailyGoals.carbs)*100)}%`, height: 5, backgroundColor: ACCENT, borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.carbs ? `${Math.min(100, (macros.carbs/dailyGoals.carbs)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.carbs ? ACCENT : '#555', borderRadius: 3 }} />
           </View>
         </View>
         <View style={{ marginTop: 8, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 8 }}>

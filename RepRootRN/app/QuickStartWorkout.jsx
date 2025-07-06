@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import KeyboardAvoidingViewContainer from './KeyboardAvoid';
 
 export default function QuickStartWorkout({ timer, onClose, onSave }) {
   const [workoutName, setWorkoutName] = useState('');
@@ -85,86 +86,88 @@ export default function QuickStartWorkout({ timer, onClose, onSave }) {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <Text style={styles.timer}>{timer}</Text>
-      <Text style={styles.title}>Log Workout</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Workout Name (e.g. Leg Day)"
-        placeholderTextColor="#bbb"
-        value={workoutName}
-        onChangeText={setWorkoutName}
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <ScrollView style={{ flex: 1 }}>
-        {exercises.map((exercise, exIdx) => (
-          <View key={exIdx} style={styles.exerciseCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <TextInput
-                style={styles.exerciseInput}
-                placeholder="Exercise Name"
-                placeholderTextColor="#bbb"
-                value={exercise.name}
-                onChangeText={(text) => handleExerciseNameChange(exIdx, text)}
-              />
-              <TouchableOpacity onPress={() => handleRemoveExercise(exIdx)} style={styles.removeBtn}>
-                <Text style={{ color: '#bbb', fontSize: 18 }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            {exercise.sets.map((set, setIdx) => (
-              <View key={setIdx} style={styles.setRow}>
-                <Text style={styles.setNum}>{setIdx + 1}</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#181818', flex: 1 }]} edges={["top"]}>
+      <KeyboardAvoidingViewContainer style={{ flex: 1 }}>
+        <Text style={styles.timer}>{timer}</Text>
+        <Text style={styles.title}>Log Workout</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Workout Name (e.g. Leg Day)"
+          placeholderTextColor="#bbb"
+          value={workoutName}
+          onChangeText={setWorkoutName}
+        />
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+          {exercises.map((exercise, exIdx) => (
+            <View key={exIdx} style={styles.exerciseCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                 <TextInput
-                  style={styles.setInput}
-                  placeholder="Weight"
+                  style={styles.exerciseInput}
+                  placeholder="Exercise Name"
                   placeholderTextColor="#bbb"
-                  value={set.weight}
-                  onChangeText={(text) => handleSetChange(exIdx, setIdx, 'weight', text)}
-                  keyboardType="numeric"
+                  value={exercise.name}
+                  onChangeText={(text) => handleExerciseNameChange(exIdx, text)}
                 />
-                <Text style={styles.setLabel}>lbs</Text>
-                <TextInput
-                  style={styles.setInput}
-                  placeholder="Reps"
-                  placeholderTextColor="#bbb"
-                  value={set.reps}
-                  onChangeText={(text) => handleSetChange(exIdx, setIdx, 'reps', text)}
-                  keyboardType="numeric"
-                />
-                <Text style={styles.setLabel}>reps</Text>
-                <TextInput
-                  style={styles.noteInput}
-                  placeholder="Add notes..."
-                  placeholderTextColor="#bbb"
-                  value={set.note}
-                  onChangeText={(text) => handleSetChange(exIdx, setIdx, 'note', text)}
-                />
-                {/* Inline set stepper */}
-                <TouchableOpacity onPress={() => handleAddSetAfter(exIdx, setIdx)} style={styles.inlineSetBtn}>
-                  <Text style={styles.inlineSetBtnText}>+</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleRemoveSet(exIdx, setIdx)} style={styles.inlineSetBtn}>
-                  <Text style={styles.inlineSetBtnText}>–</Text>
+                <TouchableOpacity onPress={() => handleRemoveExercise(exIdx)} style={styles.removeBtn}>
+                  <Text style={{ color: '#bbb', fontSize: 18 }}>✕</Text>
                 </TouchableOpacity>
               </View>
-            ))}
-            <TouchableOpacity onPress={() => handleAddSet(exIdx)} style={styles.addSetBtn}>
-              <Text style={styles.addSetText}>+ Add Set</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-        <TouchableOpacity onPress={handleAddExercise} style={styles.addExerciseBtn}>
-          <Text style={styles.addExerciseText}>+ Add Exercise</Text>
-        </TouchableOpacity>
-      </ScrollView>
-      <View style={styles.footerBtns}>
-        <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
-          <Text style={styles.cancelText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
-          <Text style={styles.saveText}>Save Workout</Text>
-        </TouchableOpacity>
-      </View>
+              {exercise.sets.map((set, setIdx) => (
+                <View key={setIdx} style={styles.setRow}>
+                  <Text style={styles.setNum}>{setIdx + 1}</Text>
+                  <TextInput
+                    style={styles.setInput}
+                    placeholder="Weight"
+                    placeholderTextColor="#bbb"
+                    value={set.weight}
+                    onChangeText={(text) => handleSetChange(exIdx, setIdx, 'weight', text)}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.setLabel}>lbs</Text>
+                  <TextInput
+                    style={styles.setInput}
+                    placeholder="Reps"
+                    placeholderTextColor="#bbb"
+                    value={set.reps}
+                    onChangeText={(text) => handleSetChange(exIdx, setIdx, 'reps', text)}
+                    keyboardType="numeric"
+                  />
+                  <Text style={styles.setLabel}>reps</Text>
+                  <TextInput
+                    style={styles.noteInput}
+                    placeholder="Add notes..."
+                    placeholderTextColor="#bbb"
+                    value={set.note}
+                    onChangeText={(text) => handleSetChange(exIdx, setIdx, 'note', text)}
+                  />
+                  {/* Inline set stepper */}
+                  <TouchableOpacity onPress={() => handleAddSetAfter(exIdx, setIdx)} style={styles.inlineSetBtn}>
+                    <Text style={styles.inlineSetBtnText}>+</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleRemoveSet(exIdx, setIdx)} style={styles.inlineSetBtn}>
+                    <Text style={styles.inlineSetBtnText}>–</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity onPress={() => handleAddSet(exIdx)} style={styles.addSetBtn}>
+                <Text style={styles.addSetText}>+ Add Set</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TouchableOpacity onPress={handleAddExercise} style={styles.addExerciseBtn}>
+            <Text style={styles.addExerciseText}>+ Add Exercise</Text>
+          </TouchableOpacity>
+        </ScrollView>
+        <View style={styles.footerBtns}>
+          <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
+            <Text style={styles.saveText}>Save Workout</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingViewContainer>
     </SafeAreaView>
   );
 }

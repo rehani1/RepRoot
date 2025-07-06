@@ -33,6 +33,7 @@ import { supabase } from '../lib/supabase';
 import { Picker } from '@react-native-picker/picker';
 import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -57,6 +58,8 @@ export default function ProfileScreen() {
   const [heightInch, setHeightInch] = useState('');
   const [showFeetPicker, setShowFeetPicker] = useState(false);
   const [showInchPicker, setShowInchPicker] = useState(false);
+
+  const navigation = useNavigation();
 
   // For DOB picker
   const currentYear = new Date().getFullYear();
@@ -179,6 +182,11 @@ export default function ProfileScreen() {
     return age;
   }
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -189,7 +197,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.profileCard}>
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }}
@@ -231,7 +239,11 @@ export default function ProfileScreen() {
           <Text style={styles.nutritionText}>Protein (P): <Text style={styles.bold}>{profile?.protein ?? 'N/A'}{profile?.protein ? 'g' : ''}</Text></Text>
           <Text style={styles.nutritionText}>Fat (F): <Text style={styles.bold}>{profile?.fat ?? 'N/A'}{profile?.fat ? 'g' : ''}</Text></Text>
         </View>
-      </View>
+        {/* Log Out Button */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
       {/* Edit Profile Modal */}
       <Modal visible={editModal} animationType="slide" onRequestClose={() => setEditModal(false)}>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -340,10 +352,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
   },
   container: {
-    flex: 1,
     padding: 24,
     backgroundColor: '#111',
-    alignItems: 'center',
     paddingTop: 16,
   },
   profileCard: {
@@ -569,5 +579,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     borderRadius: 10,
     marginBottom: 8,
+  },
+  logoutBtn: {
+    backgroundColor: '#d9534f',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 32,
+    marginBottom: 12,
+    width: '100%',
+  },
+  logoutText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+    letterSpacing: 1,
   },
 });
