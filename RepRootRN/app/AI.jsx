@@ -7,6 +7,8 @@ import { addUserMessage, getConversation, initConversation } from '../utils/conv
 import { FlatList } from 'react-native-gesture-handler';
 import Bubble from './Bubble';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../lib/supabase';
+import dayjs from 'dayjs'; 
 
 const AIScreen = () => {
 
