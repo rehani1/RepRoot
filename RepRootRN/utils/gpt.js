@@ -1,25 +1,41 @@
-// RepRootRN/utils/gpt.js   (✨ new version – no OpenAI SDK here)
+// RepRootRN/utils/gpt.js
 import { addAssistantMessage } from "./conversation";
 
-const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";  
+const ENDPOINT = "https://rep-root.vercel.app/api/askOpenAI";
 
 export async function chatRequest(userText, context = "") {
   try {
     const res = await fetch(ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userText, context })
+      body: JSON.stringify({ userText, context }),
     });
 
+    /* ─────── QUICK PEEK (remove when happy) ─────── */
+    const rawBody = await res.text();               // grab as plain text first
+    // Uncomment the next line if you want to log *every* response
+    // console.log("⇦ backend raw:", rawBody);
+    /* ────────────────────────────────────────────── */
+
     if (!res.ok) {
-      const { error } = await res.json();
-      throw new Error(error ?? `HTTP ${res.status}`);
+      console.error("⇦ backend error:", rawBody);
+      throw new Error(`HTTP ${res.status}`);
     }
 
-    const { output } = await res.json();
+    let data;
+    try {
+      data = JSON.parse(rawBody);
+    } catch (e) {
+      console.error("⇦ not JSON:", rawBody);
+      throw new Error("Invalid JSON from server");
+    }
+
+    const { output } = data;
     addAssistantMessage(output);
   } catch (err) {
     console.error("AI error:", err);
-    addAssistantMessage("I couldn’t reach the AI service. Please try again later.");
+    addAssistantMessage(
+      "I couldn’t reach the AI service. Please try again later."
+    );
   }
 }
