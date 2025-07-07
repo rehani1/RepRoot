@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
+import KeyboardAvoid from './KeyboardAvoid';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -64,79 +65,85 @@ export default function CompleteProfile() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Complete Your Profile</Text>
-      <Text style={styles.inputLabel}>Name</Text>
-      <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#bbb" value={name} onChangeText={setName} />
-      <Text style={styles.inputLabel}>Height</Text>
-      <View style={styles.heightPickerRow}>
-        <Picker
-          selectedValue={heightFeet}
-          onValueChange={setHeightFeet}
-          style={[styles.picker, styles.heightPicker]}
-        >
-          <Picker.Item label="Feet" value="" />
-          {['4', '5', '6', '7'].map((ft) => (
-            <Picker.Item key={ft} label={ft} value={ft} />
-          ))}
-        </Picker>
-        <Picker
-          selectedValue={heightInch}
-          onValueChange={setHeightInch}
-          style={[styles.picker, styles.heightPicker]}
-        >
-          <Picker.Item label="Inches" value="" />
-          {Array.from({ length: 12 }, (_, i) => String(i)).map((inch) => (
-            <Picker.Item key={inch} label={inch} value={inch} />
-          ))}
-        </Picker>
-      </View>
-      <Text style={styles.inputLabel}>Weight (lbs)</Text>
-      <TextInput style={styles.input} placeholder="Weight (lbs)" placeholderTextColor="#bbb" value={weight} onChangeText={setWeight} keyboardType="numeric" />
-      <Text style={styles.inputLabel}>Date of Birth</Text>
-      <TouchableOpacity
-        style={styles.dobButton}
-        onPress={() => setShowDatePicker(true)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.dobButtonText}>
-          {dob ? dayjs(dob).format('MMM D, YYYY') : 'Select Date'}
-        </Text>
-      </TouchableOpacity>
-      {showDatePicker && (
-        <DateTimePicker
-          value={dob && dayjs(dob).isValid() ? new Date(dob) : new Date(2000, 0, 1)}
-          mode="date"
-          display="spinner"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              setDob(dayjs(selectedDate).format('YYYY-MM-DD'));
-            }
-          }}
-          maximumDate={new Date()}
-        />
-      )}
-      <View style={styles.genderRow}>
-        {GENDERS.map((g) => (
-          <TouchableOpacity key={g} style={[styles.genderBtn, gender === g && styles.genderBtnActive]} onPress={() => setGender(g)}>
-            <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>{g}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#111' }} edges={["top"]}>
+      <KeyboardAvoid style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Text style={styles.title}>Complete Your Profile</Text>
+          <Text style={styles.inputLabel}>Name</Text>
+          <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#bbb" value={name} onChangeText={setName} />
+          <Text style={styles.inputLabel}>Height</Text>
+          <View style={styles.heightPickerRow}>
+            <Picker
+              selectedValue={heightFeet}
+              onValueChange={setHeightFeet}
+              style={[styles.picker, styles.heightPicker]}
+            >
+              <Picker.Item label="Feet" value="" />
+              {['4', '5', '6', '7'].map((ft) => (
+                <Picker.Item key={ft} label={ft} value={ft} />
+              ))}
+            </Picker>
+            <Picker
+              selectedValue={heightInch}
+              onValueChange={setHeightInch}
+              style={[styles.picker, styles.heightPicker]}
+            >
+              <Picker.Item label="Inches" value="" />
+              {Array.from({ length: 12 }, (_, i) => String(i)).map((inch) => (
+                <Picker.Item key={inch} label={inch} value={inch} />
+              ))}
+            </Picker>
+          </View>
+          <Text style={styles.inputLabel}>Weight (lbs)</Text>
+          <TextInput style={styles.input} placeholder="Weight (lbs)" placeholderTextColor="#bbb" value={weight} onChangeText={setWeight} keyboardType="numeric" />
+          <Text style={styles.inputLabel}>Date of Birth</Text>
+          <TouchableOpacity
+            style={styles.dobButton}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.dobButtonText}>
+              {dob ? dayjs(dob).format('MMM D, YYYY') : 'Select Date'}
+            </Text>
           </TouchableOpacity>
-        ))}
-      </View>
-      <Text style={styles.sectionTitle}>Macro Goals</Text>
-      <Text style={styles.inputLabel}>Calories</Text>
-      <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
-      <Text style={styles.inputLabel}>Protein (g)</Text>
-      <TextInput style={styles.input} placeholder="Protein (g)" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
-      <Text style={styles.inputLabel}>Carbs (g)</Text>
-      <TextInput style={styles.input} placeholder="Carbs (g)" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
-      <Text style={styles.inputLabel}>Fat (g)</Text>
-      <TextInput style={styles.input} placeholder="Fat (g)" placeholderTextColor="#bbb" value={fat} onChangeText={setFat} keyboardType="numeric" />
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={loading}>
-        <Text style={styles.saveText}>{loading ? 'Saving...' : 'Save Profile'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          {showDatePicker && (
+            <DateTimePicker
+              value={dob && dayjs(dob).isValid() ? new Date(dob) : new Date(2000, 0, 1)}
+              mode="date"
+              display="spinner"
+              onChange={(event, selectedDate) => {
+                if (event.type === 'set' && selectedDate) {
+                  setDob(dayjs(selectedDate).format('YYYY-MM-DD'));
+                  setShowDatePicker(false);
+                } else if (event.type === 'dismissed') {
+                  setShowDatePicker(false);
+                }
+              }}
+              maximumDate={new Date()}
+            />
+          )}
+          <View style={styles.genderRow}>
+            {GENDERS.map((g) => (
+              <TouchableOpacity key={g} style={[styles.genderBtn, gender === g && styles.genderBtnActive]} onPress={() => setGender(g)}>
+                <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>{g}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.sectionTitle}>Macro Goals</Text>
+          <Text style={styles.inputLabel}>Calories</Text>
+          <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+          <Text style={styles.inputLabel}>Protein (g)</Text>
+          <TextInput style={styles.input} placeholder="Protein (g)" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
+          <Text style={styles.inputLabel}>Carbs (g)</Text>
+          <TextInput style={styles.input} placeholder="Carbs (g)" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
+          <Text style={styles.inputLabel}>Fat (g)</Text>
+          <TextInput style={styles.input} placeholder="Fat (g)" placeholderTextColor="#bbb" value={fat} onChangeText={setFat} keyboardType="numeric" />
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSubmit} disabled={loading}>
+            <Text style={styles.saveText}>{loading ? 'Saving...' : 'Save Profile'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoid>
+    </SafeAreaView>
   );
 }
 

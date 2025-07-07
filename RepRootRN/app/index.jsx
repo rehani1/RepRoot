@@ -117,14 +117,20 @@ export default function HomeScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
             const date = new Date().toISOString().slice(0, 10);
-            await supabase.from('workouts').insert([
-              {
-                user_id: user.id,
-                date,
-                name: workoutName,
-                exercises,
-              }
-            ]);
+            const workoutData = {
+              user_id: user.id,
+              date,
+              name: workoutName,
+              exercises,
+            };
+            if (typeof timer === 'number' && !isNaN(timer)) {
+              workoutData.duration = timer;
+            }
+            const { data, error } = await supabase.from('workouts').insert([workoutData]);
+            if (error) {
+              alert('Failed to log workout: ' + error.message);
+            }
+            console.log('Workout insert result:', data, error);
             handleCloseWorkout();
           }}
         />

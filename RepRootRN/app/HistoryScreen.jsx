@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'rea
 import { Calendar } from 'react-native-calendars';
 import { supabase } from '../lib/supabase';
 import dayjs from 'dayjs';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
@@ -13,37 +14,46 @@ export default function HistoryScreen() {
   const [macros, setMacros] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const formatTime = (seconds) => {
+    if (!seconds && seconds !== 0) return '';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
   // Fetch all workout/macro dates for calendar marking
-  useEffect(() => {
-    const fetchMarkedDates = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      // Fetch workout dates
-      const { data: workoutData } = await supabase
-        .from('workouts')
-        .select('date')
-        .eq('user_id', user.id);
-      // Fetch macro dates
-      const { data: macroData } = await supabase
-        .from('macros')
-        .select('date')
-        .eq('user_id', user.id);
-      // Build markedDates object
-      const marks = {};
-      (workoutData || []).forEach(w => {
-        marks[w.date] = { marked: true, dotColor: '#6fcf97' };
-      });
-      (macroData || []).forEach(m => {
-        if (marks[m.date]) {
-          marks[m.date].dotColor = '#f39c12'; // Both: orange dot
-        } else {
-          marks[m.date] = { marked: true, dotColor: '#f39c12' };
-        }
-      });
-      setMarkedDates(marks);
-    };
-    fetchMarkedDates();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchMarkedDates = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        // Fetch workout dates
+        const { data: workoutData } = await supabase
+          .from('workouts')
+          .select('date')
+          .eq('user_id', user.id);
+        // Fetch macro dates
+        const { data: macroData } = await supabase
+          .from('macros')
+          .select('date')
+          .eq('user_id', user.id);
+        // Build markedDates object
+        const marks = {};
+        (workoutData || []).forEach(w => {
+          marks[w.date] = { marked: true, dotColor: '#6fcf97' };
+        });
+        (macroData || []).forEach(m => {
+          if (marks[m.date]) {
+            marks[m.date].dotColor = '#f39c12'; // Both: orange dot
+          } else {
+            marks[m.date] = { marked: true, dotColor: '#f39c12' };
+          }
+        });
+        setMarkedDates(marks);
+      };
+      fetchMarkedDates();
+    }, [])
+  );
 
   // Fetch data for selected date
   useEffect(() => {
@@ -133,7 +143,10 @@ export default function HistoryScreen() {
                 workouts.length ? (
                   workouts.map((w, i) => (
                     <View key={w.id || i} style={styles.dataCard}>
-                      <Text style={styles.dataTitle}>{w.name || 'Workout'}</Text>
+                      <Text style={styles.dataTitle}>
+                        {w.name || 'Workout'}
+                        {w.duration !== undefined && w.duration !== null ? ` (${formatTime(w.duration)})` : ''}
+                      </Text>
                       {w.exercises && w.exercises.map((ex, j) => (
                         <View key={j} style={{ marginBottom: 8 }}>
                           <Text style={styles.exerciseName}>{ex.name}</Text>

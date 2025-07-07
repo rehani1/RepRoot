@@ -33,7 +33,7 @@ import { supabase } from '../lib/supabase';
 import { Picker } from '@react-native-picker/picker';
 import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
@@ -103,36 +103,38 @@ export default function ProfileScreen() {
   }, [heightFeet, heightInch]);
 
   // Fetch profile and workout count
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      // Profile
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      setProfile(prof);
-      // Pre-fill edit fields
-      if (prof) {
-        setName(prof.name || '');
-        setHeight(prof.height || '');
-        setWeight(prof.weight ? String(prof.weight) : '');
-        setDob(prof.dob || '');
-        setGender(prof.gender || '');
-        setCalories(prof.calories ? String(prof.calories) : '');
-        setProtein(prof.protein ? String(prof.protein) : '');
-        setCarbs(prof.carbs ? String(prof.carbs) : '');
-        setFat(prof.fat ? String(prof.fat) : '');
-      }
-      // Workout count
-      const { count } = await supabase
-        .from('workouts')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-      setWorkoutCount(count || 0);
-      setLoading(false);
-    };
-    fetchData();
-  }, [editModal]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchData = async () => {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        // Profile
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        setProfile(prof);
+        // Pre-fill edit fields
+        if (prof) {
+          setName(prof.name || '');
+          setHeight(prof.height || '');
+          setWeight(prof.weight ? String(prof.weight) : '');
+          setDob(prof.dob || '');
+          setGender(prof.gender || '');
+          setCalories(prof.calories ? String(prof.calories) : '');
+          setProtein(prof.protein ? String(prof.protein) : '');
+          setCarbs(prof.carbs ? String(prof.carbs) : '');
+          setFat(prof.fat ? String(prof.fat) : '');
+        }
+        // Workout count
+        const { count } = await supabase
+          .from('workouts')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+        setWorkoutCount(count || 0);
+        setLoading(false);
+      };
+      fetchData();
+    }, [editModal])
+  );
 
   const handleSave = async () => {
     if (!name || !height || !weight || !dob || !gender) {
@@ -186,14 +188,6 @@ export default function ProfileScreen() {
     await supabase.auth.signOut();
     navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safeArea} edges={["top"]}>
-        <View style={styles.container}><Text style={{ color: '#fff' }}>Loading...</Text></View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>

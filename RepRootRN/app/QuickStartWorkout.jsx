@@ -239,12 +239,11 @@ const styles = StyleSheet.create({
   setInput: {
     backgroundColor: '#232323',
     color: '#fff',
-    borderRadius: 6,
-    padding: 6,
-    width: 54,
+    borderRadius: 8,
+    padding: 8,
     marginHorizontal: 4,
-    fontSize: 15,
-    textAlign: 'center',
+    fontSize: 16,
+    minWidth: 70,
   },
   setLabel: {
     color: '#bbb',

@@ -15,7 +15,27 @@ export default function RegisterScreen({ navigation }) {
     if (error) setError(error.message);
     setLoading(false);
     if (!error) {
-      navigation.navigate('CompleteProfile');
+      // Create a blank profile row for the new user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('profiles').insert({ id: user.id, email: user.email });
+      }
+      // Wait for session to be established before proceeding
+      let tries = 0;
+      let session = null;
+      while (tries < 10) {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+        if (session) break;
+        await new Promise(res => setTimeout(res, 300));
+        tries++;
+      }
+      if (session) {
+        // Session is available, let root navigator handle the flow
+        return;
+      } else {
+        setError('Registration successful, but session not established. Please log in.');
+      }
     }
   };
 

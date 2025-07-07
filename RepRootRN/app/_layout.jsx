@@ -1,7 +1,7 @@
 // app/_layout.jsx
 import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
+import { Text } from 'react-native';
 
 import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -59,26 +59,65 @@ function MainStack() {
 
 export default function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setLoading(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      try {
+        setIsLoggedIn(!!session);
+        if (session) {
+          // Check if profile is complete
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!prof || !prof.name || !prof.height || !prof.weight || !prof.dob || !prof.gender) {
+              setNeedsProfile(true);
+            } else {
+              setNeedsProfile(false);
+            }
+          } else {
+            setNeedsProfile(true); // If no user, force profile completion
+          }
+        } else {
+          setNeedsProfile(false);
+        }
+      } catch (e) {
+        console.error('Profile check error:', e);
+        setNeedsProfile(false);
+      }
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        setIsLoggedIn(!!session);
+        if (session) {
+          // Check if profile is complete
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!prof || !prof.name || !prof.height || !prof.weight || !prof.dob || !prof.gender) {
+              setNeedsProfile(true);
+            } else {
+              setNeedsProfile(false);
+            }
+          } else {
+            setNeedsProfile(true); // If no user, force profile completion
+          }
+        } else {
+          setNeedsProfile(false);
+        }
+      } catch (e) {
+        console.error('Profile check error:', e);
+        setNeedsProfile(false);
+      }
     });
     return () => {
       listener?.subscription.unsubscribe();
     };
   }, []);
 
-  if (loading) return null;
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {isLoggedIn ? <MainStack /> : <AuthStack />}
+      {isLoggedIn ? <MainStack initialRouteName={needsProfile ? 'CompleteProfile' : 'HomeTabs'} /> : <AuthStack />}
     </GestureHandlerRootView>
   );
 }
