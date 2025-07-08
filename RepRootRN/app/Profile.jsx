@@ -27,21 +27,23 @@
 
 // app/Profile.jsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { Picker } from '@react-native-picker/picker';
 import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import KeyboardAvoid from './KeyboardAvoid';
+import { useProfile } from './ProfileContext.jsx';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 
 export default function ProfileScreen() {
-  const [profile, setProfile] = useState(null);
-  const [workoutCount, setWorkoutCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { profile, workoutCount, loading, updateProfile, updateWorkoutCount } = useProfile();
   const [editModal, setEditModal] = useState(false);
+  
+
   // Editable fields
   const [name, setName] = useState('');
   const [height, setHeight] = useState('');
@@ -54,37 +56,34 @@ export default function ProfileScreen() {
   const [fat, setFat] = useState('');
   const [saving, setSaving] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDob, setTempDob] = useState(null);
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInch, setHeightInch] = useState('');
   const [showFeetPicker, setShowFeetPicker] = useState(false);
   const [showInchPicker, setShowInchPicker] = useState(false);
 
   const navigation = useNavigation();
+  
+  // Safety check for navigation
+  const safeNavigate = (routeName, params) => {
+    try {
+      if (navigation && navigation.navigate) {
+        // Use setTimeout to avoid navigation conflicts
+        setTimeout(() => {
+          navigation.navigate(routeName, params);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
 
-  // For DOB picker
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => String(currentYear - i));
-  const months = [
-    '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'
-  ];
-  const days = Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0'));
-  // Parse DOB for picker defaults
-  const [dobYear, setDobYear] = useState(dob ? dob.split('-')[0] : '');
-  const [dobMonth, setDobMonth] = useState(dob ? dob.split('-')[1] : '');
-  const [dobDay, setDobDay] = useState(dob ? dob.split('-')[2] : '');
-  // Keep dob in sync with pickers
-  useEffect(() => {
-    if (dobYear && dobMonth && dobDay) {
-      setDob(`${dobYear}-${dobMonth}-${dobDay}`);
-    }
-  }, [dobYear, dobMonth, dobDay]);
-  useEffect(() => {
-    if (dob) {
-      setDobYear(dob.split('-')[0]);
-      setDobMonth(dob.split('-')[1]);
-      setDobDay(dob.split('-')[2]);
-    }
-  }, [editModal]);
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Profile tab focused', { profile, navigation });
+    }, [profile, navigation])
+  );
+
 
   // Parse height for picker defaults
   useEffect(() => {
@@ -102,43 +101,24 @@ export default function ProfileScreen() {
     }
   }, [heightFeet, heightInch]);
 
-  // Fetch profile and workout count
-  useFocusEffect(
-    React.useCallback(() => {
-      const fetchData = async () => {
-        setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        // Profile
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(prof);
-        // Pre-fill edit fields
-        if (prof) {
-          setName(prof.name || '');
-          setHeight(prof.height || '');
-          setWeight(prof.weight ? String(prof.weight) : '');
-          setDob(prof.dob || '');
-          setGender(prof.gender || '');
-          setCalories(prof.calories ? String(prof.calories) : '');
-          setProtein(prof.protein ? String(prof.protein) : '');
-          setCarbs(prof.carbs ? String(prof.carbs) : '');
-          setFat(prof.fat ? String(prof.fat) : '');
-        }
-        // Workout count
-        const { count } = await supabase
-          .from('workouts')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        setWorkoutCount(count || 0);
-        setLoading(false);
-      };
-      fetchData();
-    }, [editModal])
-  );
+    // Pre-fill edit fields when profile changes
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name || '');
+      setHeight(profile.height || '');
+      setWeight(profile.weight ? String(profile.weight) : '');
+      setDob(profile.dob || '');
+      setGender(profile.gender || '');
+      setCalories(profile.calories ? String(profile.calories) : '');
+      setProtein(profile.protein ? String(profile.protein) : '');
+      setCarbs(profile.carbs ? String(profile.carbs) : '');
+      setFat(profile.fat ? String(profile.fat) : '');
+    }
+  }, [profile]);
 
   const handleSave = async () => {
-    if (!name || !height || !weight || !dob || !gender) {
-      Alert.alert('Error', 'Please fill out all required fields.');
+    if (!name) {
+      Alert.alert('Error', 'Please enter your name.');
       return;
     }
     setSaving(true);
@@ -148,31 +128,38 @@ export default function ProfileScreen() {
       setSaving(false);
       return;
     }
-    const { error } = await supabase.from('profiles').upsert({
+    
+    const updatedProfile = {
       id: user.id,
       name,
       height,
-      weight: parseInt(weight),
+      weight: weight ? parseInt(weight) : null,
       dob,
       gender,
       calories: calories ? parseInt(calories) : null,
       protein: protein ? parseInt(protein) : null,
       carbs: carbs ? parseInt(carbs) : null,
       fat: fat ? parseInt(fat) : null,
-    });
+    };
+    
+    const { error } = await supabase.from('profiles').upsert(updatedProfile);
     setSaving(false);
     if (error) {
       Alert.alert('Error', 'Failed to save profile.');
       return;
     }
+    
+    // Update the context with the new profile data
+    updateProfile(updatedProfile);
     setEditModal(false);
+    Alert.alert('Success', 'Profile updated successfully');
   };
 
   // Helper to calculate age from DOB
   function getAge(dob) {
-    if (!dob) return 'N/A';
+    if (!dob) return '-';
     const birth = dayjs(dob);
-    if (!birth.isValid()) return 'N/A';
+    if (!birth.isValid()) return '-';
     const today = dayjs();
     let age = today.year() - birth.year();
     if (
@@ -185,8 +172,22 @@ export default function ProfileScreen() {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    try {
+      await supabase.auth.signOut();
+      // Add a longer delay and check navigation state before navigating
+      setTimeout(() => {
+        if (navigation && navigation.navigate) {
+          navigation.navigate('Login');
+        }
+      }, 300);
+    } catch (error) {
+      // Fallback navigation with delay
+      setTimeout(() => {
+        if (navigation && navigation.navigate) {
+          navigation.navigate('Login');
+        }
+      }, 300);
+    }
   };
 
   return (
@@ -228,10 +229,10 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Nutrition</Text>
-          <Text style={styles.nutritionText}>Calories: <Text style={styles.bold}>{profile?.calories ?? 'N/A'}</Text></Text>
-          <Text style={styles.nutritionText}>Carbs (C): <Text style={styles.bold}>{profile?.carbs ?? 'N/A'}{profile?.carbs ? 'g' : ''}</Text></Text>
-          <Text style={styles.nutritionText}>Protein (P): <Text style={styles.bold}>{profile?.protein ?? 'N/A'}{profile?.protein ? 'g' : ''}</Text></Text>
-          <Text style={styles.nutritionText}>Fat (F): <Text style={styles.bold}>{profile?.fat ?? 'N/A'}{profile?.fat ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Calories: <Text style={styles.bold}>{profile?.calories ?? '-'}</Text></Text>
+          <Text style={styles.nutritionText}>Carbs (C): <Text style={styles.bold}>{profile?.carbs ?? '-'}{profile?.carbs ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Protein (P): <Text style={styles.bold}>{profile?.protein ?? '-'}{profile?.protein ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Fat (F): <Text style={styles.bold}>{profile?.fat ?? '-'}{profile?.fat ? 'g' : ''}</Text></Text>
         </View>
         {/* Log Out Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -241,99 +242,125 @@ export default function ProfileScreen() {
       {/* Edit Profile Modal */}
       <Modal visible={editModal} animationType="slide" onRequestClose={() => setEditModal(false)}>
         <SafeAreaView style={styles.safeArea} edges={["top"]}>
-          <ScrollView contentContainerStyle={{ padding: 24 }}>
-            <Text style={styles.title}>Edit Profile</Text>
-            <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#bbb" value={name} onChangeText={setName} />
-            <Text style={styles.inputLabel}>Height</Text>
-            <View style={styles.heightPickerRow}>
-              <TouchableOpacity
-                style={styles.heightButton}
-                onPress={() => setShowFeetPicker(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.dobButtonText}>{heightFeet ? `${heightFeet} ft` : 'Select Feet'}</Text>
-              </TouchableOpacity>
-              {showFeetPicker && (
-                <Picker
-                  selectedValue={heightFeet}
-                  onValueChange={(val) => { setHeightFeet(val); setShowFeetPicker(false); }}
-                  style={styles.modalPicker}
+          <KeyboardAvoid style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 24 }} keyboardShouldPersistTaps="handled">
+              <Text style={styles.title}>Edit Profile</Text>
+              <TextInput style={styles.input} placeholder="Name" placeholderTextColor="#bbb" value={name} onChangeText={setName} />
+              <Text style={styles.inputLabel}>Height</Text>
+              <View style={styles.heightPickerRow}>
+                <TouchableOpacity
+                  style={styles.heightButton}
+                  onPress={() => setShowFeetPicker(true)}
+                  activeOpacity={0.8}
                 >
-                  <Picker.Item label="Feet" value="" />
-                  {['4', '5', '6', '7'].map((ft) => (
-                    <Picker.Item key={ft} label={ft} value={ft} />
-                  ))}
-                </Picker>
-              )}
-              <TouchableOpacity
-                style={styles.heightButton}
-                onPress={() => setShowInchPicker(true)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.dobButtonText}>{heightInch !== '' ? `${heightInch} in` : 'Select Inches'}</Text>
-              </TouchableOpacity>
-              {showInchPicker && (
-                <Picker
-                  selectedValue={heightInch}
-                  onValueChange={(val) => { setHeightInch(val); setShowInchPicker(false); }}
-                  style={styles.modalPicker}
-                >
-                  <Picker.Item label="Inches" value="" />
-                  {Array.from({ length: 12 }, (_, i) => String(i)).map((inch) => (
-                    <Picker.Item key={inch} label={inch} value={inch} />
-                  ))}
-                </Picker>
-              )}
-            </View>
-            <TextInput style={styles.input} placeholder="Weight (lbs)" placeholderTextColor="#bbb" value={weight} onChangeText={setWeight} keyboardType="numeric" />
-            <Text style={styles.inputLabel}>Date of Birth</Text>
-            <TouchableOpacity
-              style={styles.dobButton}
-              onPress={() => setShowDatePicker(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.dobButtonText}>
-                {dob ? dayjs(dob).format('MMM D, YYYY') : 'Select Date'}
-              </Text>
-            </TouchableOpacity>
-            {showDatePicker && (
-              <DateTimePicker
-                value={dob && dayjs(dob).isValid() ? new Date(dob) : new Date(2000, 0, 1)}
-                mode="date"
-                display="spinner"
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    setDob(dayjs(selectedDate).format('YYYY-MM-DD'));
-                  }
-                }}
-                maximumDate={new Date()}
-              />
-            )}
-            <View style={{ height: 16 }} />
-            <View style={styles.genderRow}>
-              {GENDERS.map((g) => (
-                <TouchableOpacity key={g} style={[styles.genderBtn, gender === g && styles.genderBtnActive]} onPress={() => setGender(g)}>
-                  <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>{g}</Text>
+                  <Text style={styles.dobButtonText}>{heightFeet ? `${heightFeet} ft` : 'Select Feet'}</Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.sectionTitle}>Macro Goals</Text>
-            <Text style={styles.inputLabel}>Calories</Text>
-            <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
-            <Text style={styles.inputLabel}>Protein (g)</Text>
-            <TextInput style={styles.input} placeholder="Protein (g)" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
-            <Text style={styles.inputLabel}>Carbs (g)</Text>
-            <TextInput style={styles.input} placeholder="Carbs (g)" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
-            <Text style={styles.inputLabel}>Fat (g)</Text>
-            <TextInput style={styles.input} placeholder="Fat (g)" placeholderTextColor="#bbb" value={fat} onChangeText={setFat} keyboardType="numeric" />
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Profile'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModal(false)}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </ScrollView>
+                {showFeetPicker && (
+                  <Picker
+                    selectedValue={heightFeet}
+                    onValueChange={(val) => { setHeightFeet(val); setShowFeetPicker(false); }}
+                    style={styles.modalPicker}
+                  >
+                    <Picker.Item label="Feet" value="" />
+                    {['4', '5', '6', '7'].map((ft) => (
+                      <Picker.Item key={ft} label={ft} value={ft} />
+                    ))}
+                  </Picker>
+                )}
+                <TouchableOpacity
+                  style={styles.heightButton}
+                  onPress={() => setShowInchPicker(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.dobButtonText}>{heightInch !== '' ? `${heightInch} in` : 'Select Inches'}</Text>
+                </TouchableOpacity>
+                {showInchPicker && (
+                  <Picker
+                    selectedValue={heightInch}
+                    onValueChange={(val) => { setHeightInch(val); setShowInchPicker(false); }}
+                    style={styles.modalPicker}
+                  >
+                    <Picker.Item label="Inches" value="" />
+                    {Array.from({ length: 12 }, (_, i) => String(i)).map((inch) => (
+                      <Picker.Item key={inch} label={inch} value={inch} />
+                    ))}
+                  </Picker>
+                )}
+              </View>
+              <TextInput style={styles.input} placeholder="Weight (lbs)" placeholderTextColor="#bbb" value={weight} onChangeText={setWeight} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Date of Birth</Text>
+              <TouchableOpacity
+                style={styles.dobButton}
+                onPress={() => {
+                  setTempDob(dob && dayjs(dob).isValid() ? dayjs(dob).toDate() : new Date(1990, 0, 1));
+                  setShowDatePicker(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dobButtonText}>
+                  {dob && dayjs(dob).isValid() ? dayjs(dob).format('MMM D, YYYY') : 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker
+                    value={tempDob || new Date(1990, 0, 1)}
+                    mode="date"
+                    display="inline"
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) {
+                        setTempDob(selectedDate);
+                      }
+                    }}
+                    maximumDate={new Date()}
+                    minimumDate={new Date(1900, 0, 1)}
+                  />
+                  <View style={styles.datePickerButtons}>
+                    <TouchableOpacity 
+                      style={styles.datePickerButton} 
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={styles.datePickerButtonText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.datePickerButton, styles.datePickerButtonConfirm]} 
+                      onPress={() => {
+                        if (tempDob) {
+                          setDob(dayjs(tempDob).format('YYYY-MM-DD'));
+                        }
+                        setShowDatePicker(false);
+                      }}
+                    >
+                      <Text style={[styles.datePickerButtonText, styles.datePickerButtonTextConfirm]}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              <View style={{ height: 16 }} />
+              <View style={styles.genderRow}>
+                {GENDERS.map((g) => (
+                  <TouchableOpacity key={g} style={[styles.genderBtn, gender === g && styles.genderBtnActive]} onPress={() => setGender(g)}>
+                    <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.sectionTitle}>Macro Goals</Text>
+              <Text style={styles.inputLabel}>Calories</Text>
+              <TextInput style={styles.input} placeholder="Calories" placeholderTextColor="#bbb" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Protein (g)</Text>
+              <TextInput style={styles.input} placeholder="Protein (g)" placeholderTextColor="#bbb" value={protein} onChangeText={setProtein} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Carbs (g)</Text>
+              <TextInput style={styles.input} placeholder="Carbs (g)" placeholderTextColor="#bbb" value={carbs} onChangeText={setCarbs} keyboardType="numeric" />
+              <Text style={styles.inputLabel}>Fat (g)</Text>
+              <TextInput style={styles.input} placeholder="Fat (g)" placeholderTextColor="#bbb" value={fat} onChangeText={setFat} keyboardType="numeric" />
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Profile'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditModal(false)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoid>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -588,5 +615,35 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     letterSpacing: 1,
+  },
+  datePickerContainer: {
+    backgroundColor: '#232323',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  datePickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  datePickerButton: {
+    flex: 1,
+    backgroundColor: '#181818',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginHorizontal: 4,
+  },
+  datePickerButtonConfirm: {
+    backgroundColor: '#6fcf97',
+  },
+  datePickerButtonText: {
+    color: '#bbb',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  datePickerButtonTextConfirm: {
+    color: '#232323',
   },
 });

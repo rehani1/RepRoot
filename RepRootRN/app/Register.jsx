@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function RegisterScreen({ navigation }) {
@@ -15,11 +15,8 @@ export default function RegisterScreen({ navigation }) {
     if (error) setError(error.message);
     setLoading(false);
     if (!error) {
-      // Create a blank profile row for the new user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from('profiles').insert({ id: user.id, email: user.email });
-      }
+      // Profile will be created when user first visits Profile screen
+      // This avoids timing issues and duplicate key errors
       // Wait for session to be established before proceeding
       let tries = 0;
       let session = null;
@@ -31,7 +28,8 @@ export default function RegisterScreen({ navigation }) {
         tries++;
       }
       if (session) {
-        // Session is available, let root navigator handle the flow
+        // Registration successful, user can now use the app
+        // The root layout will handle navigation to main app
         return;
       } else {
         setError('Registration successful, but session not established. Please log in.');

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import dayjs from 'dayjs';
+import { useProfile } from './ProfileContext.jsx';
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Misc'];
 const ACCENT = '#ccc'; // light gray accent
 
 export default function MacroTracker() {
+  const { profile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,10 +21,9 @@ export default function MacroTracker() {
   const [fats, setFats] = useState('');
   const [calories, setCalories] = useState('');
   const [editId, setEditId] = useState(null);
-  const [profileGoals, setProfileGoals] = useState(null);
 
   useEffect(() => {
-    const fetchUserAndEntriesAndGoals = async () => {
+    const fetchUserAndEntries = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
         Alert.alert('Error', 'Could not get user. Please log in again.');
@@ -31,20 +32,8 @@ export default function MacroTracker() {
       }
       setUserId(user.id);
       fetchEntries(user.id, selectedDate);
-      // Fetch profile goals
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (prof) {
-        setProfileGoals({
-          calories: prof.calories,
-          protein: prof.protein,
-          fat: prof.fat,
-          carbs: prof.carbs,
-        });
-      } else {
-        setProfileGoals(null);
-      }
     };
-    fetchUserAndEntriesAndGoals();
+    fetchUserAndEntries();
   }, [selectedDate]);
 
   const fetchEntries = async (uid, date) => {
@@ -77,15 +66,18 @@ export default function MacroTracker() {
   };
 
   const handleAddOrEditFood = async () => {
-    if (!food || !protein || !carbs || !fats || !calories) return;
+    if (!food) {
+      Alert.alert('Error', 'Please enter a food name.');
+      return;
+    }
     if (!userId) return;
     const entry = {
       user_id: userId,
       food,
-      protein: parseFloat(protein),
-      carbs: parseFloat(carbs),
-      fats: parseFloat(fats),
-      calories: parseFloat(calories),
+      protein: protein ? parseFloat(protein) : 0,
+      carbs: carbs ? parseFloat(carbs) : 0,
+      fats: fats ? parseFloat(fats) : 0,
+      calories: calories ? parseFloat(calories) : 0,
       meal: modalMeal,
       date: selectedDate,
     };
@@ -133,13 +125,12 @@ export default function MacroTracker() {
     return acc;
   }, { protein: 0, carbs: 0, fats: 0, calories: 0 });
 
-  // Use profileGoals if available, otherwise fallback to defaults for each macro
-  const defaultGoals = { calories: 3011, protein: 115, fat: 84, carbs: 449 };
+  // Use profile goals if available, otherwise fallback to defaults for each macro
   const dailyGoals = {
-    calories: profileGoals && !isNaN(Number(profileGoals.calories)) && profileGoals.calories !== null && profileGoals.calories !== '' ? Number(profileGoals.calories) : null,
-    protein: profileGoals && !isNaN(Number(profileGoals.protein)) && profileGoals.protein !== null && profileGoals.protein !== '' ? Number(profileGoals.protein) : null,
-    fat: profileGoals && !isNaN(Number(profileGoals.fat)) && profileGoals.fat !== null && profileGoals.fat !== '' ? Number(profileGoals.fat) : null,
-    carbs: profileGoals && !isNaN(Number(profileGoals.carbs)) && profileGoals.carbs !== null && profileGoals.carbs !== '' ? Number(profileGoals.carbs) : null,
+    calories: profile && !isNaN(Number(profile.calories)) && profile.calories !== null && profile.calories !== '' ? Number(profile.calories) : null,
+    protein: profile && !isNaN(Number(profile.protein)) && profile.protein !== null && profile.protein !== '' ? Number(profile.protein) : null,
+    fat: profile && !isNaN(Number(profile.fat)) && profile.fat !== null && profile.fat !== '' ? Number(profile.fat) : null,
+    carbs: profile && !isNaN(Number(profile.carbs)) && profile.carbs !== null && profile.carbs !== '' ? Number(profile.carbs) : null,
   };
 
   const isToday = selectedDate === dayjs().format('YYYY-MM-DD');

@@ -33,8 +33,8 @@ export default function CompleteProfile() {
   }, [heightFeet, heightInch]);
 
   const handleSubmit = async () => {
-    if (!name || !height || !weight || !dob || !gender) {
-      Alert.alert('Error', 'Please fill out all required fields.');
+    if (!name) {
+      Alert.alert('Error', 'Please enter your name.');
       return;
     }
     setLoading(true);
@@ -61,7 +61,7 @@ export default function CompleteProfile() {
       Alert.alert('Error', 'Failed to save profile.');
       return;
     }
-    navigation.reset({ index: 0, routes: [{ name: 'HomeTabs' }] });
+    navigation.navigate('HomeTabs');
   };
 
   return (

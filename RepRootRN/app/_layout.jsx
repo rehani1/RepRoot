@@ -8,6 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BottomBar from '../components/ui/BottomBar.jsx';
 import { supabase } from '../lib/supabase';
+import { ProfileProvider } from './ProfileContext.jsx';
 
 import HomeScreen from './index.jsx';
 import AIScreen from './AI.jsx';
@@ -50,6 +51,7 @@ function MainStack() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="HomeTabs" component={MainTabs} options={{ headerShown: false }} />
+      <Stack.Screen name="CompleteProfile" component={CompleteProfile} options={{ headerShown: false }} />
       <Stack.Screen name="HistoryScreen" component={HistoryScreen} options={{ title: 'History', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
       <Stack.Screen name="ProgressScreen" component={ProgressScreen} options={{ title: 'Progress', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
       <Stack.Screen name="MacroTracker" component={MacroTracker} options={{ title: 'Macro Tracker', headerBackTitleVisible: true, headerBackTitle: 'Back', headerTintColor: '#2d3034' }} />
@@ -60,24 +62,14 @@ function MainStack() {
 export default function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [navKey, setNavKey] = useState(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       try {
         setIsLoggedIn(!!session);
         if (session) {
-          // Check if profile is complete
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (!prof || !prof.name || !prof.height || !prof.weight || !prof.dob || !prof.gender) {
-              setNeedsProfile(true);
-            } else {
-              setNeedsProfile(false);
-            }
-          } else {
-            setNeedsProfile(true); // If no user, force profile completion
-          }
+          setNeedsProfile(false);
         } else {
           setNeedsProfile(false);
         }
@@ -90,21 +82,11 @@ export default function Layout() {
       try {
         setIsLoggedIn(!!session);
         if (session) {
-          // Check if profile is complete
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-            if (!prof || !prof.name || !prof.height || !prof.weight || !prof.dob || !prof.gender) {
-              setNeedsProfile(true);
-            } else {
-              setNeedsProfile(false);
-            }
-          } else {
-            setNeedsProfile(true); // If no user, force profile completion
-          }
+          setNeedsProfile(false);
         } else {
           setNeedsProfile(false);
         }
+        setNavKey((k) => k + 1); // Increment navKey on auth change
       } catch (e) {
         console.error('Profile check error:', e);
         setNeedsProfile(false);
@@ -117,7 +99,9 @@ export default function Layout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {isLoggedIn ? <MainStack initialRouteName={needsProfile ? 'CompleteProfile' : 'HomeTabs'} /> : <AuthStack />}
+      <ProfileProvider>
+        {isLoggedIn ? <MainStack key={navKey} initialRouteName="HomeTabs" /> : <AuthStack key={navKey} />}
+      </ProfileProvider>
     </GestureHandlerRootView>
   );
 }
