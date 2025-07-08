@@ -27,7 +27,7 @@
 
 // app/Profile.jsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, TextInput, Alert, ScrollView, Platform, ActivityIndicator, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../lib/supabase';
 import { Picker } from '@react-native-picker/picker';
@@ -38,9 +38,10 @@ import KeyboardAvoid from './KeyboardAvoid';
 import { useProfile } from './ProfileContext.jsx';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
+const windowHeight = Dimensions.get('window').height;
 
 export default function ProfileScreen() {
-  const { profile, workoutCount, loading, updateProfile, updateWorkoutCount } = useProfile();
+  const { profile, workoutCount, loading, hasLoaded, updateProfile, updateWorkoutCount } = useProfile();
   const [editModal, setEditModal] = useState(false);
   
 
@@ -190,15 +191,25 @@ export default function ProfileScreen() {
     }
   };
 
+  if (!hasLoaded) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#6fcf97" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { minHeight: windowHeight }]}>
         <View style={styles.profileCard}>
           <Image
             source={{ uri: 'https://cdn-icons-png.flaticon.com/512/149/149071.png' }}
             style={styles.avatar}
           />
-          <Text style={styles.name}>{profile?.name || 'No Name'}</Text>
+          <Text style={styles.name}>{loading ? '-' : (profile?.name || 'No Name')}</Text>
           <TouchableOpacity style={styles.editBtn} onPress={() => setEditModal(true)}>
             <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -206,35 +217,35 @@ export default function ProfileScreen() {
         <View style={styles.infoRow}>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Height</Text>
-            <Text style={styles.value}>{profile?.height || '-'}</Text>
+            <Text style={styles.value}>{loading ? '-' : (profile?.height || '-')}</Text>
           </View>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Weight</Text>
-            <Text style={styles.value}>{profile?.weight ? `${profile.weight} lbs` : '-'}</Text>
+            <Text style={styles.value}>{loading ? '-' : (profile?.weight ? `${profile.weight} lbs` : '-')}</Text>
           </View>
         </View>
         <View style={styles.infoRow}>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Age</Text>
-            <Text style={styles.value}>{getAge(profile?.dob)}</Text>
+            <Text style={styles.value}>{loading ? '-' : getAge(profile?.dob)}</Text>
           </View>
           <View style={styles.infoBox}>
             <Text style={styles.label}>Gender</Text>
-            <Text style={styles.value}>{profile?.gender || '-'}</Text>
+            <Text style={styles.value}>{loading ? '-' : (profile?.gender || '-')}</Text>
           </View>
         </View>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Workouts</Text>
-          <Text style={styles.editLabel}>Workouts Logged: <Text style={styles.bold}>{workoutCount}</Text></Text>
+          <Text style={styles.editLabel}>Workouts Logged: <Text style={styles.bold}>{loading ? '-' : workoutCount}</Text></Text>
         </View>
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Nutrition</Text>
-          <Text style={styles.nutritionText}>Calories: <Text style={styles.bold}>{profile?.calories ?? '-'}</Text></Text>
-          <Text style={styles.nutritionText}>Carbs (C): <Text style={styles.bold}>{profile?.carbs ?? '-'}{profile?.carbs ? 'g' : ''}</Text></Text>
-          <Text style={styles.nutritionText}>Protein (P): <Text style={styles.bold}>{profile?.protein ?? '-'}{profile?.protein ? 'g' : ''}</Text></Text>
-          <Text style={styles.nutritionText}>Fat (F): <Text style={styles.bold}>{profile?.fat ?? '-'}{profile?.fat ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Calories: <Text style={styles.bold}>{loading ? '-' : (profile?.calories ?? '-')}</Text></Text>
+          <Text style={styles.nutritionText}>Carbs (C): <Text style={styles.bold}>{loading ? '-' : (profile?.carbs ?? '-')} {profile?.carbs ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Protein (P): <Text style={styles.bold}>{loading ? '-' : (profile?.protein ?? '-')} {profile?.protein ? 'g' : ''}</Text></Text>
+          <Text style={styles.nutritionText}>Fat (F): <Text style={styles.bold}>{loading ? '-' : (profile?.fat ?? '-')} {profile?.fat ? 'g' : ''}</Text></Text>
         </View>
-        {/* Log Out Button */}
+        {/* Log Out Button always at the bottom */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
