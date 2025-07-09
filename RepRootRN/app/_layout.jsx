@@ -8,7 +8,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BottomBar from '../components/ui/BottomBar.jsx';
 import { supabase } from '../lib/supabase';
-import { ProfileProvider } from './ProfileContext.jsx';
+import { ProfileProvider } from '../context/ProfileContext.jsx';
 
 import HomeScreen from './index.jsx';
 import AIScreen from './AI.jsx';

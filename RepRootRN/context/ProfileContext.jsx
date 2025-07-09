@@ -18,7 +18,7 @@ export const ProfileProvider = ({ children }) => {
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const loadProfileData = async (userId) => {
-    if (!userId || hasLoaded) return;
+    if (!userId) return;
     
     setLoading(true);
     try {
@@ -69,6 +69,19 @@ export const ProfileProvider = ({ children }) => {
     setWorkoutCount(newCount);
   };
 
+  const refreshWorkoutCount = async (userId) => {
+    if (!userId) return;
+    try {
+      const { count } = await supabase
+        .from('workouts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      setWorkoutCount(count || 0);
+    } catch (error) {
+      setWorkoutCount(0);
+    }
+  };
+
   const resetProfile = () => {
     setProfile(null);
     setWorkoutCount(0);
@@ -105,6 +118,7 @@ export const ProfileProvider = ({ children }) => {
     updateProfile,
     updateWorkoutCount,
     loadProfileData,
+    refreshWorkoutCount,
   };
 
   return (

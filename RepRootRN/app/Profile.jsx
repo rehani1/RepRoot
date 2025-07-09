@@ -35,13 +35,13 @@ import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import KeyboardAvoid from './KeyboardAvoid';
-import { useProfile } from './ProfileContext.jsx';
+import { useProfile } from '../context/ProfileContext.jsx';
 
 const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say'];
 const windowHeight = Dimensions.get('window').height;
 
 export default function ProfileScreen() {
-  const { profile, workoutCount, loading, hasLoaded, updateProfile, updateWorkoutCount } = useProfile();
+  const { profile, workoutCount, loading, hasLoaded, updateProfile, updateWorkoutCount, refreshWorkoutCount } = useProfile();
   const [editModal, setEditModal] = useState(false);
   
 
@@ -81,8 +81,13 @@ export default function ProfileScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
-      console.log('Profile tab focused', { profile, navigation });
-    }, [profile, navigation])
+      (async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          refreshWorkoutCount(user.id);
+        }
+      })();
+    }, [navigation])
   );
 
 

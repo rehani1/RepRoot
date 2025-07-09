@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import QuickStartWorkout from './QuickStartWorkout.jsx';
 import { supabase } from '../lib/supabase';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useProfile } from '../context/ProfileContext.jsx';
 
 const FEATURES = [
   {
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const { refreshWorkoutCount } = useProfile();
 
   // Timer logic (simple for now)
   React.useEffect(() => {
@@ -129,6 +131,9 @@ export default function HomeScreen() {
             const { data, error } = await supabase.from('workouts').insert([workoutData]);
             if (error) {
               alert('Failed to log workout: ' + error.message);
+            } else {
+              // Refresh only the workout count
+              refreshWorkoutCount(user.id);
             }
             console.log('Workout insert result:', data, error);
             handleCloseWorkout();

@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
 import dayjs from 'dayjs';
-import { useProfile } from './ProfileContext.jsx';
+import { useProfile } from '../context/ProfileContext.jsx';
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Misc'];
 const ACCENT = '#ccc'; // light gray accent
 
 export default function MacroTracker() {
-  const { profile } = useProfile();
+  const { profile, loadProfileData } = useProfile();
   const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,6 +21,9 @@ export default function MacroTracker() {
   const [fats, setFats] = useState('');
   const [calories, setCalories] = useState('');
   const [editId, setEditId] = useState(null);
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [goalInput, setGoalInput] = useState(profile?.goal || '');
+  const [savingGoal, setSavingGoal] = useState(false);
 
   useEffect(() => {
     const fetchUserAndEntries = async () => {
@@ -138,6 +141,28 @@ export default function MacroTracker() {
     ? `Today${', ' + dayjs(selectedDate).format('MMM D')}`
     : dayjs(selectedDate).format('dddd, MMM D');
 
+  const saveGoal = async () => {
+    if (!userId) return;
+    setSavingGoal(true);
+    const { error } = await supabase.from('profiles').update({ goal: goalInput }).eq('id', userId);
+    setSavingGoal(false);
+    setGoalModalVisible(false);
+    if (!error) {
+      await loadProfileData(userId);
+      Alert.alert('Success', 'Goal updated!');
+    } else {
+      Alert.alert('Error', 'Failed to update goal.');
+    }
+  };
+
+  // Helper to determine if all goals are met
+  const allGoalsMet = [
+    dailyGoals.calories !== null ? macros.calories >= dailyGoals.calories : true,
+    dailyGoals.protein !== null ? macros.protein >= dailyGoals.protein : true,
+    dailyGoals.fat !== null ? macros.fats >= dailyGoals.fat : true,
+    dailyGoals.carbs !== null ? macros.carbs >= dailyGoals.carbs : true,
+  ].every(Boolean);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#111', padding: 0 }}>
       {/* Header and Date Navigation */}
@@ -160,33 +185,54 @@ export default function MacroTracker() {
             <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Daily Summary</Text>
             <Text style={{ color: '#bbb', fontSize: 13 }}>Today, {dayjs(selectedDate).format('MMMM D')}</Text>
           </View>
-          <View style={{ backgroundColor: '#111', borderRadius: 32, padding: 10, borderWidth: 2, borderColor: '#6fcf97', alignItems: 'center' }}>
-            <Text style={{ color: '#6fcf97', fontWeight: 'bold', fontSize: 18 }}>{dailyGoals.calories - macros.calories}</Text>
-            <Text style={{ color: '#bbb', fontSize: 11 }}>left</Text>
+          <View style={{ backgroundColor: '#111', borderRadius: 32, padding: 10, borderWidth: 2, borderColor: allGoalsMet ? '#6fcf97' : '#888', alignItems: 'center' }}>
+            <Text style={{ color: allGoalsMet ? '#6fcf97' : '#888', fontWeight: 'bold', fontSize: 16 }}>
+              {allGoalsMet ? 'Goals Met!' : 'In Progress'}
+            </Text>
           </View>
         </View>
         <View style={{ marginTop: 10 }}>
           <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>Macros Progress</Text>
           <Text style={{ color: '#bbb', fontSize: 13 }}>Calories  {macros.calories} / {dailyGoals.calories !== null ? dailyGoals.calories + ' cal' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: dailyGoals.calories ? `${Math.min(100, (macros.calories/dailyGoals.calories)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.calories ? '#6fcf97' : '#555', borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.calories ? `${Math.min(100, (macros.calories/dailyGoals.calories)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.calories && macros.calories >= dailyGoals.calories ? '#6fcf97' : '#555', borderRadius: 3 }} />
           </View>
           <Text style={{ color: '#bbb', fontSize: 13 }}>Protein  {macros.protein} / {dailyGoals.protein !== null ? dailyGoals.protein + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: dailyGoals.protein ? `${Math.min(100, (macros.protein/dailyGoals.protein)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.protein ? ACCENT : '#555', borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.protein ? `${Math.min(100, (macros.protein/dailyGoals.protein)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.protein && macros.protein >= dailyGoals.protein ? '#6fcf97' : '#555', borderRadius: 3 }} />
           </View>
           <Text style={{ color: '#bbb', fontSize: 13 }}>Fat  {macros.fats} / {dailyGoals.fat !== null ? dailyGoals.fat + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: dailyGoals.fat ? `${Math.min(100, (macros.fats/dailyGoals.fats)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.fat ? ACCENT : '#555', borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.fat ? `${Math.min(100, (macros.fats/dailyGoals.fat)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.fat && macros.fats >= dailyGoals.fat ? '#6fcf97' : '#555', borderRadius: 3 }} />
           </View>
           <Text style={{ color: '#bbb', fontSize: 13 }}>Carbs  {macros.carbs} / {dailyGoals.carbs !== null ? dailyGoals.carbs + ' g' : 'N/A'}</Text>
           <View style={{ height: 5, backgroundColor: '#333', borderRadius: 3, marginVertical: 2 }}>
-            <View style={{ width: dailyGoals.carbs ? `${Math.min(100, (macros.carbs/dailyGoals.carbs)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.carbs ? ACCENT : '#555', borderRadius: 3 }} />
+            <View style={{ width: dailyGoals.carbs ? `${Math.min(100, (macros.carbs/dailyGoals.carbs)*100)}%` : '0%', height: 5, backgroundColor: dailyGoals.carbs && macros.carbs >= dailyGoals.carbs ? '#6fcf97' : '#555', borderRadius: 3 }} />
           </View>
         </View>
-        <View style={{ marginTop: 8, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 8 }}>
-          <Text style={{ color: ACCENT, fontWeight: 'bold' }}>Your goal: Build Muscle</Text>
-        </View>
+        <TouchableOpacity onPress={() => setGoalModalVisible(true)} style={{ marginTop: 8, backgroundColor: '#1a1a1a', borderRadius: 10, padding: 8 }}>
+          <Text style={{ color: ACCENT, fontWeight: 'bold' }}>Your goal: {profile?.goal || 'Set a goal'}</Text>
+        </TouchableOpacity>
+        <Modal visible={goalModalVisible} transparent animationType="slide" onRequestClose={() => setGoalModalVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#232323', borderRadius: 16, padding: 24, width: '80%' }}>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 18, marginBottom: 12 }}>Edit Goal</Text>
+              <TextInput
+                value={goalInput}
+                onChangeText={setGoalInput}
+                placeholder="Enter your goal (e.g. Build Muscle)"
+                placeholderTextColor="#888"
+                style={{ backgroundColor: '#111', color: '#fff', borderRadius: 8, padding: 10, marginBottom: 16 }}
+              />
+              <TouchableOpacity onPress={saveGoal} style={{ backgroundColor: '#6fcf97', borderRadius: 8, padding: 12, alignItems: 'center', marginBottom: 8 }} disabled={savingGoal}>
+                <Text style={{ color: '#111', fontWeight: 'bold', fontSize: 16 }}>{savingGoal ? 'Saving...' : 'Save Goal'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setGoalModalVisible(false)} style={{ alignItems: 'center' }}>
+                <Text style={{ color: '#bbb', fontSize: 15 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
       {/* Meals */}
       <FlatList
